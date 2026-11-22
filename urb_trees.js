@@ -31,7 +31,7 @@
   const stick = (r0, r1, h, seg = 7) => new T.CylinderGeometry(r0, r1, h, seg).translate(0, h / 2, 0);
 
   // the shapes. Every one stands in a space where the tree is 1 high; a tree of the model is that shape made as tall as the tree.
-  const big = [lump(2, 1), lump(2, 5), lump(2, 9)], small = [lump(1, 2), lump(1, 6), lump(1, 11), lump(1, 15)];
+  const big = [lump(api.lite ? 1 : 2, 1), lump(api.lite ? 1 : 2, 5), lump(api.lite ? 1 : 2, 9)], small = [lump(1, 2), lump(1, 6), lump(1, 11), lump(1, 15)];
   const broadCrown = v => { const parts = [{ geo: big[v % 3], m: at(0, .68, 0, .3, .28, .3, v) }, { geo: small[v % 4], m: at(.02, .86, .01, .19, .16, .19, v * 2), shade: 1.06 }];
     for (let i = 0; i < 5; i++) { const a = i * 1.257 + v * .7, d = .19 + rnd() * .06, r = .15 + rnd() * .07; parts.push({ geo: small[(i + v) % 4], m: at(Math.cos(a) * d, .56 + rnd() * .2, Math.sin(a) * d, r, r * .92, r, a), shade: .88 + rnd() * .16 }) } return merge(parts) };
   const broadTrunk = v => merge([{ geo: stick(.02, .042, .56), m: at(0, 0, 0, 1, 1, 1) }, { geo: stick(.011, .02, .26, 5), m: at(0, .36, 0, 1, 1, 1, v * 1.3, .62) }, { geo: stick(.01, .018, .24, 5), m: at(0, .42, 0, 1, 1, 1, v * 1.3 + 2.4, .55) }, { geo: stick(.009, .016, .2, 5), m: at(0, .46, 0, 1, 1, 1, v * 1.3 + 4.3, .7) }]);
@@ -53,12 +53,12 @@
   const any = () => { const k = rnd(); return k < .13 ? 'fir' : k < .3 ? 'column' : 'broad' };
   for (const [x, y] of pairs(MAP.trees)) if (free(x, y, 3)) plant('broad', x, y, 1.1);
   for (const row of MAP.rows) { const shape = Math.floor(rnd() * 3); for (const line of api.clip(pairs(row))) api.along(line, 9.5, (x, y) => { if (free(x, y, 4)) plant('broad', x, y, .82 + rnd() * .1, shape) }, 2) }
-  const scatter = (p, per1000, kind, tall = 1, gap = 6.5) => { const xs = p.map(q => q[0]), ys = p.map(q => q[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), want = Math.min(220, Math.abs(area(p)) / 1000 * per1000); let made = 0, tries = 0;
+  const scatter = (p, per1000, kind, tall = 1, gap = 6.5) => { const xs = p.map(q => q[0]), ys = p.map(q => q[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), want = Math.min(220, Math.abs(area(p)) / 1000 * per1000) * (api.lite ? .5 : 1); let made = 0, tries = 0;
     while (made < want && tries++ < want * 28) { const x = x0 + rnd() * (x1 - x0), y = y0 + rnd() * (y1 - y0); if (!inside(x, y, p) || !free(x, y, gap)) continue; plant(kind || any(), x, y, tall); made++ } };
   for (const g of api.greens) { if (g.k === 'scrub') { scatter(g.p, 2.4, 'bush', 1, 5); scatter(g.p, 1, null, .8) } else if (g.k === 'allotments') scatter(g.p, 1.2, 'bush', .8, 5); else scatter(g.p, { wood: 5.2, park: 1.8, meadow: .25, grass: .5 }[g.k] || 0, null, g.k === 'wood' ? 1.1 : 1, g.k === 'wood' ? 5.5 : 7.5) }
   for (const [id, n] of [['park', 2.1], ['harbour', 1.2], ['creative', .55], ['industrial', .22], ['culture', .32], ['factory', .2]]) scatter(zones[id].poly, n, null, 1, 8);
   for (const [id, n] of [['park', .6], ['harbour', .45], ['creative', .25]]) scatter(zones[id].poly, n, 'bush', 1, 5.5);
 
   const leaf = new T.MeshLambertMaterial({ vertexColors: true }), bark = new T.MeshLambertMaterial({ color: mix(HUE.brown[2], HUE.ocher[2], .5) });
-  for (const key in bags) { const { K, v, items } = bags[key]; api.instances(K.crowns[v], leaf, items, api.wood, K.trunk !== null); if (K.trunk) api.instances(K.trunk, bark, items.map(it => ({ ...it, color: null })), api.wood) }
+  for (const key in bags) { const { K, v, items } = bags[key]; api.instances(K.crowns[v], leaf, items, api.wood, K.trunk !== null && !api.lite); if (K.trunk) api.instances(K.trunk, bark, items.map(it => ({ ...it, color: null })), api.wood) }
 });

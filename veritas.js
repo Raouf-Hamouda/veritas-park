@@ -27,11 +27,12 @@
     for (const s of blocks) { s.style.minHeight = ''; } for (const s of blocks) { const h = s.getBoundingClientRect().height; s.style.minHeight = Math.ceil((h - 1) / row) * row + 'px' }
     if (mark) { const d = mark.getBoundingClientRect().top - t0; if (Math.abs(d) > 1) scrollBy({ top: d, behavior: 'instant' }) } };   // the block being read never moves when the rows are set again
 
+  const tint = $('meta[name=theme-color]') || D.head.appendChild(Object.assign(D.createElement('meta'), { name: 'theme-color' }));   // the colour a phone gives to its own bars
   // the header takes the ink of the ground under it; a few things follow the scroll
   const head = $('.head'), arc = $('.arc'), bleeds = $$('.bleed');
   let tick = 0; const scroll = () => { if (tick) return; tick = requestAnimationFrame(() => { tick = 0;
     root.classList.toggle('at-top', scrollY < innerHeight * .6); root.classList.toggle('scrolled', scrollY > 30);
-    const g = D.elementsFromPoint(innerWidth / 2, head.offsetHeight / 2).find(e => e.dataset && e.dataset.ground); head.classList.toggle('on-dark', !!g && g.dataset.ground === 'dark');
+    const g = D.elementsFromPoint(innerWidth / 2, head.offsetHeight / 2).find(e => e.dataset && e.dataset.ground); head.classList.toggle('on-dark', !!g && g.dataset.ground === 'dark'); const darkTop = head.classList.contains('on-dark') || root.classList.contains('at-top'); root.classList.toggle('dark-top', darkTop); tint.content = darkTop ? '#000000' : '#ffffff';
     if (arc && !calm) { const r = arc.getBoundingClientRect(), p = (innerHeight - r.top) / (innerHeight + r.height); if (p > -.2 && p < 1.2) arc.style.setProperty('--turn', ((.5 - p) * 26).toFixed(2) + 'deg') }
     if (!calm) for (const b of bleeds) { const r = b.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) b.style.setProperty('--par', ((innerHeight - r.top) / (innerHeight + r.height)).toFixed(3)) }
     if (body.classList.contains('grid')) body.style.setProperty('--gy', -(scrollY % row) + 'px') }) };
@@ -103,7 +104,10 @@
     form.addEventListener('input', tell); form.addEventListener('change', tell); addEventListener('load', tell) });
 
   // a picture that arrives late changes the height of its block: the square rows are set again
-  let late = 0; D.addEventListener('load', e => { if (e.target.tagName === 'IMG' && !e.target.closest('.fl-ui,.lb,.hero,.wheel,.col-pic,.top2,.call2,.bleed')) { clearTimeout(late); late = setTimeout(() => { snap(); scroll() }, 120) } }, true);
+  let late = 0;
+  // a block that grows past its rows after the first setting (a font or a logo that arrives late) is set on the rows again
+  if (window.ResizeObserver) { const ro = new ResizeObserver(() => { clearTimeout(late); late = setTimeout(() => { snap(); scroll() }, 120) }); blocks.forEach(b => ro.observe(b)) }
+  D.addEventListener('load', e => { if (e.target.tagName === 'IMG' && !e.target.closest('.fl-ui,.lb,.hero,.wheel,.col-pic,.top2,.call2,.bleed')) { clearTimeout(late); late = setTimeout(() => { snap(); scroll() }, 120) } }, true);
 
   addEventListener('pageshow', scroll); D.addEventListener('visibilitychange', scroll);   // the ink of the menu bar is set again whenever the page is shown
   // the next page is fetched as soon as the pointer comes near its link, so that it is there at once; and its first picture is fetched ahead

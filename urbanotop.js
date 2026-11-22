@@ -55,10 +55,11 @@
   function mount(stage) {
     const canvas = stage.querySelector('canvas'), old = stage.parentNode.querySelector('.zones'); if (old) old.remove();
     let renderer; try { renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true }) } catch (e) { stage.classList.add('flat'); stage.innerHTML = '<img src="img/urbanotop_map.jpg" alt="The six quarters of VERITAS">'; return }
+    const lite = matchMedia('(pointer:coarse)').matches || innerWidth < 820;   // a phone or a tablet: a lighter model
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.25)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap; renderer.shadowMap.autoUpdate = false;
     const scene = new T.Scene(), cam = new T.OrthographicCamera(-1, 1, 1, -1, 900, 3600);
     const amb = new T.AmbientLight(0xffffff, .4), sun = new T.DirectionalLight(0xffffff, .8), fill = new T.DirectionalLight(0xffffff, .2); sun.castShadow = true;
-    Object.assign(sun.shadow.camera, { left: -640, right: 640, top: 640, bottom: -640, near: 300, far: 2200 }); sun.shadow.camera.updateProjectionMatrix(); sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -.0007; sun.shadow.normalBias = .6;
+    Object.assign(sun.shadow.camera, { left: -640, right: 640, top: 640, bottom: -640, near: 300, far: 2200 }); sun.shadow.camera.updateProjectionMatrix(); sun.shadow.mapSize.set(lite ? 1024 : 2048, lite ? 1024 : 2048); sun.shadow.bias = -.0007; sun.shadow.normalBias = .6;
     scene.add(amb, sun, sun.target, fill);
     const C = h => new T.Color(h), mix = (a, b, t) => C(a).lerp(C(b), t), M4 = new T.Matrix4(), Q = new T.Quaternion(), V = new T.Vector3(), V2 = new T.Vector3(), EUL = new T.Euler();
     let dirty = true, shadowDirty = true, open13 = 0;
@@ -261,10 +262,13 @@
     const ray = new T.Raycaster(), mouse = new T.Vector2(), ptrs = new Map(); let drag = null, pinch = null, swayAt = performance.now();
     const under = e => { const r = canvas.getBoundingClientRect(); mouse.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(mouse, cam); const hit = ray.intersectObjects(picks, false)[0]; return hit ? { zone: hit.object.userData.zone, b: hit.object.userData.b, point: hit.point } : null };
     const told = h => h && h.b && info[h.b] && info[h.b].use;
-    canvas.addEventListener('pointerdown', e => { ptrs.set(e.pointerId, e); canvas.setPointerCapture(e.pointerId); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), zoom: view.zoom }; drag = null } else drag = { x: e.clientX, y: e.clientY, az: view.az, el: view.el, vx: view.x, vz: view.z, moved: 0, turn: e.shiftKey || e.altKey || e.button === 2 || e.pointerType !== 'mouse' }; fly = null });
-    canvas.addEventListener('contextmenu', e => e.preventDefault());
+    canvas.addEventListener('pointerdown', e => { ptrs.set(e.pointerId, e); canvas.setPointerCapture(e.pointerId); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1, zoom: view.zoom, ang: Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX), az: view.az, mx: (a.clientX + b.clientX) / 2, my: (a.clientY + b.clientY) / 2, vx: view.x, vz: view.z }; drag = null } else drag = { x: e.clientX, y: e.clientY, az: view.az, el: view.el, vx: view.x, vz: view.z, moved: 0, turn: e.shiftKey || e.altKey || e.button === 2 }; fly = null });
+    canvas.addEventListener('contextmenu', e => e.preventDefault()); canvas.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault() }, { passive: false }); canvas.addEventListener('gesturestart', e => e.preventDefault());
     canvas.addEventListener('pointermove', e => { if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, e);
-      if (pinch && ptrs.size === 2) { const [a, b] = [...ptrs.values()]; view.zoom = clamp(pinch.zoom * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinch.d, 1, 14); dirty = true; return }
+      if (pinch && ptrs.size === 2) { const [a, b] = [...ptrs.values()]; view.zoom = clamp(pinch.zoom * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinch.d, ZMIN, 14);
+        let da = Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) - pinch.ang; da = Math.atan2(Math.sin(da), Math.cos(da)); view.az = pinch.az + (Math.abs(da) > .16 ? da - Math.sign(da) * .16 : 0);   // a clear twist of the two fingers turns the model
+        const u = 2 * base / (view.zoom * W), az = view.az, f = u / Math.sin(view.el), dx = (a.clientX + b.clientX) / 2 - pinch.mx, dy = (a.clientY + b.clientY) / 2 - pinch.my;
+        view.x = clamp(pinch.vx - dx * u * Math.cos(az) - dy * f * Math.sin(az), -R, R); view.z = clamp(pinch.vz + dx * u * Math.sin(az) - dy * f * Math.cos(az), -R, R); fly = null; dirty = true; tip.hidden = true; return }
       if (drag) { const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.moved = Math.max(drag.moved, Math.hypot(dx, dy)); if (drag.moved > 4) { if (drag.turn) { view.az = drag.az - dx * .0058; if (e.pointerType === 'mouse') view.el = clamp(drag.el + dy * .003, .28, 1.42) }
           else { const u = 2 * base / (view.zoom * W), a = view.az, f = u / Math.sin(view.el); view.x = clamp(drag.vx - dx * u * Math.cos(a) - dy * f * Math.sin(a), -R, R); view.z = clamp(drag.vz + dx * u * Math.sin(a) - dy * f * Math.cos(a), -R, R) }
           canvas.style.cursor = 'grabbing'; dirty = true; tip.hidden = true } return }
@@ -304,7 +308,7 @@
       for (const k in zones) { const z = zones[k]; if (Math.abs(z.to - z.k) > .003) { z.k += (z.to - z.k) * Math.min(1, dt * .009); moving = true; for (const m of z.mats) { m.color.copy(m.userData.base).lerp(m.userData.pale, z.k * .9); if (m.userData.wash) m.emissive.copy(m.userData.pale).multiplyScalar(z.k * .6) } } }
       if (Math.abs(open13 - openNow) > .002) { openNow += (open13 - openNow) * Math.min(1, dt * .006); moving = shadowDirty = true; floors.forEach((g, i) => g.position.y = openNow * i * 7.5) }
       const sec = Math.floor(Date.now() / 1000); if (sec !== lastSec && level === 2) { lastSec = sec; drawFace() }   // near the tower its thin hand ticks
-      const idle = !chosen && !drag && !fly && !calm && !plan, sway = idle ? Math.sin((now - swayAt) / 5200) * .05 : 0; if (now - lastDraw > 50 && !document.hidden) moving = true;   // the water: 20 pictures a second
+      const idle = !chosen && !drag && !fly && !calm && !plan, sway = idle ? Math.sin((now - swayAt) / 5200) * .05 : 0; if (now - lastDraw > (lite ? 120 : 50) && !document.hidden && !(lite && now - lastScroll < 260)) moving = true;   // the water: 20 pictures a second
       for (const f of api.hooks) f(now);
       if (!moving && !dirty) return; dirty = false; lastDraw = now; if (shadowDirty && age < 3.4 && (shadowTick = (shadowTick + 1) % 5)) shadowDirty = false, keepShadow = true; else if (keepShadow && age >= 3.4) shadowDirty = true, keepShadow = false;
       const a = view.az + sway, D = 2200; cam.left = -base; cam.right = base; cam.top = base * H / W; cam.bottom = -base * H / W; cam.zoom = view.zoom; cam.updateProjectionMatrix();
@@ -316,10 +320,10 @@
     new ResizeObserver(size).observe(stage); size(); daylight(); drawFace(); setInterval(() => { drawFace(); if (!stage.dataset.hour) daylight() }, 30000); show();
     new IntersectionObserver(es => { const was = visible; visible = es[0].isIntersecting; if (visible && !was) { dirty = true; lastT = performance.now(); requestAnimationFrame(frame) } }, { rootMargin: '0px 0px -10% 0px' }).observe(stage);
     // the detail modules: railway and train, roof walls and gates, kerbs and lamps, people, cars and boats
-    Object.assign(api, { T, scene, MAP, R, UP, HUE, zones, zoneAt, info, town, mix, mat, pairs, inside, area, centroid, greens, waters, wood, flat, lay, shapeOf, b13, roof13: floors[floors.length - 1], mark: () => { dirty = shadowDirty = true } });
+    Object.assign(api, { T, scene, MAP, R, UP, HUE, zones, zoneAt, info, town, mix, mat, pairs, inside, area, centroid, greens, waters, wood, flat, lay, shapeOf, b13, roof13: floors[floors.length - 1], lite, mark: () => { dirty = shadowDirty = true } });
     for (const f of window.VERITAS_DETAIL || []) { try { f(api) } catch (e) { console.error(e) } }
     shadowDirty = true; stage.urbanotop = { choose, flyTo, view, daylight, api };   // for the checks
   }
-  const go = () => { if (!T || !MAP) return; document.querySelectorAll('[data-urbanotop]').forEach(s => { try { mount(s) } catch (e) { console.error(e) } }) };
+  const go = () => { if (!T || !MAP) return; document.querySelectorAll('[data-urbanotop]').forEach(s => { const io = new IntersectionObserver(es => { if (!es.some(e => e.isIntersecting)) return; io.disconnect(); const t0 = performance.now(); try { mount(s) } catch (e) { console.error(e) } s.dataset.built = Math.round(performance.now() - t0) }, { rootMargin: '130% 0px' }); io.observe(s) }) };   // the model is built only when its place comes near the screen
   document.readyState === 'loading' ? addEventListener('DOMContentLoaded', go) : go();
 })();

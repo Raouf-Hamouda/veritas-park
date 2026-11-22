@@ -56,7 +56,7 @@
   // the sentence under "VERITAS is an Urbanotop" is the second half of one sentence of the live site
   const urb = Object.keys(DE).find(k => k.startsWith('veritasisanurbanotop') && k.length > 40); if (urb) { const rest = DE[urb].split(/\s[–-]\s/)[1]; if (rest) DE[key('An urban center with self-sustaining, future-forward and economic potential paired with green environmental standards which balances the need for a harmony between work, life, leisure and innovation.')] = rest[0].toUpperCase() + rest.slice(1) }
 
-  const skip = el => !el || el.closest('script,style,svg,.lang,.urb-ui,.fl-ui,.place,.who,.lb');
+  const skip = el => !el || el.closest('script,style,svg,.lang,.urb-ui,.fl-ui,.fl-sheet,.place,.who,.lb');
   function set(lang) {
     document.documentElement.lang = lang; const G = lang === 'de';
     for (const el of document.querySelectorAll('h1,h2,h3,p,blockquote')) { if (!el.querySelector(':scope > .pill')) continue; if (el._en === undefined) { el._en = el.innerHTML; el._k = key(el.textContent) } const make = PILL[el._k]; el._done = !!make; if (make) el.innerHTML = G ? make() : el._en }

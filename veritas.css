@@ -807,3 +807,46 @@ main,footer{overflow-x:clip}
 .lang button{padding:.5em .8em}
 /* the arrival tile leaves faster */
 .gate{transition:opacity .4s var(--ease),visibility 0s .4s}
+
+
+/* ================= ROUND 12 (23 Nov): the phone, from his iPhone captures ================= */
+/* the colour behind the page follows the ground under the menu bar, so the bars of the phone's browser never show a white band on a dark screen */
+main{background:#fff}
+html.dark-top,html.dark-top body.v{background:#000}
+body.v{--lift:0px}
+.fl-bar{display:none}
+@media(max-width:820px){
+  body.v{--lift:calc(100lvh - 100svh)}
+  /* the bar of the menu hides what passes under it */
+  .scrolled .head::before{background:rgba(255,255,255,.97)}.scrolled .head.on-dark::before{background:rgba(0,0,0,.86)}
+  /* the full-screen openings: the picture goes on under the browser's own bar, the words stay above it */
+  .hero{height:100vh;height:100lvh}.top2,.call2{min-height:100vh;min-height:100lvh;padding-bottom:var(--lift)}
+  .hero-in{bottom:var(--lift)}
+  /* the foot of the page: one screen, the logo whole under the menu bar */
+  .footer{min-height:0;justify-content:flex-start;padding:96px 0 calc(var(--row)*.4)}
+  .footer .logo{margin-bottom:calc(var(--row)*.45)}.footer .logo .mk,.foot-logo{width:50%}
+  .footer .col{font-size:13.5px;margin-bottom:16px}.footer p{margin-top:.8em}
+  /* the place in 3D: the six quarters all readable at once above the model, the card as a sheet at the foot, smaller tiles */
+  .urb .stage{height:100svh;min-height:0;touch-action:pan-y}
+  .urb-list{top:0;padding:78px var(--m) 4px;display:grid;grid-template-columns:1fr 1fr;gap:0 var(--g);overflow:visible;justify-content:stretch}
+  .urb-list li{min-width:0}.urb-list button{width:100%;text-align:left;padding-block:9px;align-items:flex-start}.urb-list span{font-size:11px;line-height:1.25;letter-spacing:.05em;white-space:normal}
+  .urb-zoom{top:auto;bottom:calc(16px + var(--lift));right:12px}.urb-zoom .round{width:40px;height:40px}.urb-zoom .round .ico{font-size:16px}
+  .urb-card{left:0;right:0;bottom:0;width:auto;max-height:46%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px var(--m) calc(16px + var(--lift))}
+  .urb-card h3{font-size:20px;margin:.2em 0 .35em}.urb-card .urb-text{font-size:14px}
+  .urb:has(.urb-card:not([hidden])) .urb-zoom{bottom:auto;top:230px}
+  /* an opened floor plan fills the screen */
+  .fl-sheet.full{position:fixed;inset:0;z-index:300;touch-action:none;transition:opacity .25s}
+  .fl-sheet.full img{max-width:calc(100% - 24px);max-height:72%}
+  .fl-sheet.full .fl-bar{display:flex;position:absolute;inset:0 0 auto;z-index:2;justify-content:space-between;align-items:center;gap:16px;padding:12px 16px;background:#fff;border-bottom:1px solid var(--line)}
+  .fl-bar b{font:400 16px/1.25 var(--head);letter-spacing:.04em}.fl-bar .round{flex:none;width:44px;height:44px}
+  .stack .view{touch-action:pan-y}
+}
+/* an iPhone lays its own bar over the foot of the page: the words of the openings keep clear of it */
+@supports (-webkit-touch-callout:none){@media(max-width:820px){body.v{--lift:max(104px,100lvh - 100svh + 24px)}}}
+.fl-bar .round{color:#000}.fl-bar b{color:#000}
+
+/* the arrival: no tile, no box. The symbol alone on black, built by move 02, then the page. */
+.gate{background:#000}
+.gate .tile{all:unset;display:grid;place-items:center;width:clamp(92px,9.5vw,148px);aspect-ratio:1;color:#fff}
+.gate .tile::before,.gate .tile::after{content:none}
+.gate .tile svg{width:100%;height:auto;overflow:visible}.gate .tile svg rect{fill:#fff}

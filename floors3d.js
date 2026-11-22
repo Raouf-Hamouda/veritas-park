@@ -40,14 +40,29 @@
   ui.innerHTML = `<div class="fl-tags">${btns.map(b => `<span>${b.querySelector('i').textContent}</span>`).join('')}</div><div class="fl-sheet" hidden><img alt="" draggable="false"></div><button type="button" class="sbtn s fl-back" hidden><span></span><svg class="curve" viewBox="0 0 100 100" aria-hidden="true"><path pathLength="1" d="M100 96.4A96.4 96.4 0 0 1 3.6 0"/></svg></button>`;
   view.append(ui); const tags = [...ui.querySelectorAll('.fl-tags span')], back = ui.querySelector('.fl-back');
   const word = () => { back.firstChild.textContent = document.documentElement.lang === 'de' ? 'Alle Etagen' : 'All floors' }; word(); addEventListener('veritas-lang', word);
-  // an opened floor is shown as the drawing itself (lines, not points): it stays sharp however close you come
-  const sheet = ui.querySelector('.fl-sheet'), pic = sheet.firstChild; pic.src = files[7]; let sz = 1, sxo = 0, syo = 0, sheetTimer = 0, grab = null;
-  const setPic = () => { pic.style.transform = `translate(${sxo.toFixed(1)}px,${syo.toFixed(1)}px) scale(${sz.toFixed(3)})` };
-  sheet.addEventListener('wheel', e => { const pinchy = e.ctrlKey || e.metaKey; if (!pinchy && (performance.now() - lastScroll < 420 || (e.deltaY > 0 && sz <= 1.001))) return; e.preventDefault();
-    const r = sheet.getBoundingClientRect(), mx = e.clientX - r.left - r.width / 2, my = e.clientY - r.top - r.height / 2, z1 = clamp(sz * Math.exp(-e.deltaY * (pinchy ? .012 : .0026)), 1, 16), k = z1 / sz; sxo = mx - (mx - sxo) * k; syo = my - (my - syo) * k; sz = z1; if (sz === 1) sxo = syo = 0; setPic() }, { passive: false });
-  sheet.addEventListener('pointerdown', e => { grab = { x: e.clientX, y: e.clientY, ox: sxo, oy: syo }; sheet.setPointerCapture(e.pointerId) });
-  sheet.addEventListener('pointermove', e => { if (!grab) return; sxo = grab.ox + e.clientX - grab.x; syo = grab.oy + e.clientY - grab.y; setPic() });
-  sheet.addEventListener('pointerup', () => grab = null); sheet.addEventListener('pointercancel', () => grab = null); sheet.addEventListener('dblclick', () => { sz = 1; sxo = syo = 0; setPic() });
+  // an opened floor is shown as the drawing itself (lines, not points): it stays sharp however close you come.
+  // With a mouse: the wheel zooms on the pointer, a drag moves. With fingers: the sheet fills the screen; one finger moves it, two fingers zoom, a double tap comes close or steps back.
+  const sheet = ui.querySelector('.fl-sheet'), pic = sheet.firstChild, touch = matchMedia('(pointer:coarse)').matches, ZMAX = touch ? 7 : 14; pic.src = files[7];
+  let sz = 1, drawn = 1, sxo = 0, syo = 0, sheetTimer = 0, sharpT = 0, baseW = 0, grab = null, two = null; const pts = new Map();
+  // while the hand moves, the drawing is only stretched; as soon as it rests it is drawn again at its true size, so its lines are fine
+  const sharp = () => { if (!baseW) baseW = pic.offsetWidth / drawn; if (!baseW) return; drawn = sz; pic.style.maxWidth = pic.style.maxHeight = 'none'; pic.style.width = (baseW * sz).toFixed(1) + 'px'; pic.style.transform = `translate(${sxo.toFixed(1)}px,${syo.toFixed(1)}px)` };
+  const setPic = () => { pic.style.transform = `translate(${sxo.toFixed(1)}px,${syo.toFixed(1)}px) scale(${(sz / drawn).toFixed(4)})`; clearTimeout(sharpT); sharpT = setTimeout(sharp, 140) };
+  const resetPic = () => { clearTimeout(sharpT); sz = drawn = 1; sxo = syo = 0; baseW = 0; pic.style.width = pic.style.maxWidth = pic.style.maxHeight = ''; pic.style.transform = '' };
+  const fromMid = (x, y) => { const r = sheet.getBoundingClientRect(); return [x - r.left - r.width / 2, y - r.top - r.height / 2] };
+  const zoomAt = (z1, mx, my) => { z1 = clamp(z1, 1, ZMAX); const k = z1 / sz; sxo = mx - (mx - sxo) * k; syo = my - (my - syo) * k; sz = z1; if (sz === 1) sxo = syo = 0; setPic() };   // the point under the hand stays under it
+  sheet.addEventListener('wheel', e => { const pinchy = e.ctrlKey || e.metaKey; if (!pinchy && (performance.now() - lastScroll < 420 || (e.deltaY > 0 && sz <= 1.001))) return; e.preventDefault(); zoomAt(sz * Math.exp(-e.deltaY * (pinchy ? .012 : .0026)), ...fromMid(e.clientX, e.clientY)) }, { passive: false });
+  sheet.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; pts.set(e.pointerId, e); sheet.setPointerCapture(e.pointerId);
+    if (pts.size === 2) { const [p, q] = [...pts.values()]; two = { d: Math.hypot(p.clientX - q.clientX, p.clientY - q.clientY) || 1, sz, sxo, syo, m: fromMid((p.clientX + q.clientX) / 2, (p.clientY + q.clientY) / 2) }; grab = null } else grab = { x: e.clientX, y: e.clientY, ox: sxo, oy: syo } });
+  sheet.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, e);
+    if (two && pts.size === 2) { const [p, q] = [...pts.values()], m = fromMid((p.clientX + q.clientX) / 2, (p.clientY + q.clientY) / 2), z1 = clamp(two.sz * Math.hypot(p.clientX - q.clientX, p.clientY - q.clientY) / two.d, 1, ZMAX), k = z1 / two.sz;
+      sxo = m[0] - (two.m[0] - two.sxo) * k; syo = m[1] - (two.m[1] - two.syo) * k; sz = z1; setPic(); return }
+    if (grab) { sxo = grab.ox + e.clientX - grab.x; syo = grab.oy + e.clientY - grab.y; setPic() } });
+  const lift = e => { pts.delete(e.pointerId); two = grab = null; if (pts.size === 1) { const p = [...pts.values()][0]; grab = { x: p.clientX, y: p.clientY, ox: sxo, oy: syo } } };
+  sheet.addEventListener('pointerup', lift); sheet.addEventListener('pointercancel', lift);
+  sheet.addEventListener('dblclick', e => { if (e.target.closest('button')) return; if (sz > 1.05) { sz = 1; sxo = syo = 0; setPic() } else zoomAt(touch ? 3 : 2.5, ...fromMid(e.clientX, e.clientY)) });
+  sheet.addEventListener('touchmove', e => e.preventDefault(), { passive: false }); sheet.addEventListener('gesturestart', e => e.preventDefault()); addEventListener('resize', () => { if (!sheet.hidden && sz === 1) resetPic() });
+  // on a phone the opened sheet fills the screen, under the name of its floor and a tile to close it
+  if (touch) { sheet.classList.add('full'); const bar = document.createElement('div'); bar.className = 'fl-bar'; bar.innerHTML = '<b></b><button type="button" class="round" aria-label="Close"><svg class="ico" viewBox="0 0 100 100" aria-hidden="true"><path d="M15 15L85 85"/><path d="M85 15L15 85"/></svg></button>'; sheet.append(bar); document.body.append(sheet); bar.querySelector('button').addEventListener('click', () => show(-1)) }
 
   let open = -1, hot = -1, visible = false, W = 1, H = 1, drag = null, born = 0, zoom = 1, zoomTo = 1, pr = 0, pu = 0, half = 300;
   const goal = { ...HOME }, cur = { az: HOME.az, el: HOME.el, hw: 420, tx: 0, ty: 0, tz: 0 };
@@ -57,7 +72,7 @@
   const fitStack = (az, el) => { const [r, u] = axes(az, el); let a = 1e9, b = -1e9, c = 1e9, d = -1e9;
     for (const x of [-WIDE / 2, WIDE / 2 + SLIDE]) for (const y of [0, (N - 1) * GAP]) for (const z of [-DMAX / 2, DMAX / 2]) { const p = x * r[0] + z * r[2], q = x * u[0] + y * u[1] + z * u[2]; a = Math.min(a, p); b = Math.max(b, p); c = Math.min(c, q); d = Math.max(d, q) }
     const cr = (a + b) / 2, cu = (c + d) / 2; return { hw: Math.max((b - a) / 2, (d - c) / 2 * W / H) * 1.1, tx: cr * r[0] + cu * u[0], ty: cu * u[1], tz: cr * r[2] + cu * u[2] } };
-  const show = i => { clearTimeout(sheetTimer); sheet.classList.remove('on'); if (i >= 0) { pic.src = files[i]; sz = 1; sxo = syo = 0; setPic(); sheet.hidden = false; sheetTimer = setTimeout(() => sheet.classList.add('on'), calm ? 0 : 950) } else sheetTimer = setTimeout(() => { sheet.hidden = true }, 320);
+  const show = i => { clearTimeout(sheetTimer); sheet.classList.remove('on'); if (i >= 0) { pic.src = files[i]; resetPic(); sheet.hidden = false; if (touch) sheet.querySelector('.fl-bar b').textContent = [...btns[i].childNodes].filter(n => n.nodeName !== 'I').map(n => n.textContent).join(' ').trim(); sheetTimer = setTimeout(() => sheet.classList.add('on'), calm || touch ? 0 : 950) } else sheetTimer = setTimeout(() => { sheet.hidden = true }, 320);
     open = i; hot = -1; zoomTo = 1; pr = pu = 0; back.hidden = i < 0; if (i >= 0) { goal.az = 0; goal.el = 1.5 } else Object.assign(goal, HOME); mark(i); canvas.style.cursor = ''; dirty = true };
   const hover = i => { if (open >= 0 || i === hot) return; hot = i; mark(i); canvas.style.cursor = i >= 0 ? 'pointer' : ''; dirty = true };
   btns.forEach((b, i) => { b.addEventListener('mouseenter', () => hover(i)); b.addEventListener('mouseleave', () => hover(-1)); b.addEventListener('click', () => show(open === i ? -1 : i)) });
@@ -68,10 +83,14 @@
   const under = e => { const r = canvas.getBoundingClientRect(); mouse.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(mouse, cam); const hit = ray.intersectObjects(layers.filter(L => L.op > .5).map(L => L.sheet))[0]; return hit ? hit.object.userData.i : -1 };
   canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, az: goal.az, el: goal.el, pr, pu, moved: 0, pan: open >= 0 || e.shiftKey || e.button === 2 }; canvas.setPointerCapture(e.pointerId) });
   canvas.addEventListener('contextmenu', e => e.preventDefault());
+  let pinch = null; const gap = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) || 1;
+  canvas.addEventListener('touchstart', e => { if (e.touches.length === 2) { pinch = { d: gap(e.touches), z: zoomTo }; drag = null } }, { passive: true });
+  canvas.addEventListener('touchmove', e => { if (e.touches.length === 2 && pinch) { e.preventDefault(); zoomTo = clamp(pinch.z * gap(e.touches) / pinch.d, .8, 12); dirty = true } }, { passive: false });
+  canvas.addEventListener('touchend', () => { pinch = null }); canvas.addEventListener('gesturestart', e => e.preventDefault());
   canvas.addEventListener('pointermove', e => { if (!drag) { if (e.pointerType === 'mouse') hover(under(e)); return }
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.moved = Math.max(drag.moved, Math.hypot(dx, dy)); if (drag.moved <= 4) return;
-    if (drag.pan) { pr = drag.pr - dx * 2 * half / W; pu = drag.pu + dy * 2 * half / W } else { goal.az = drag.az - dx * .006; goal.el = clamp(drag.el + dy * .004, .2, 1.3) } dirty = true });
-  canvas.addEventListener('pointerup', e => { const d = drag; drag = null; if (d && d.moved <= 4 && open < 0) { const i = under(e); if (i >= 0) show(i) } });
+    if (drag.pan) { pr = drag.pr - dx * 2 * half / W; pu = drag.pu + dy * 2 * half / W } else { goal.az = drag.az - dx * .006; if (e.pointerType === 'mouse') goal.el = clamp(drag.el + dy * .004, .2, 1.3) } dirty = true });
+  canvas.addEventListener('pointerup', e => { const d = drag; drag = null; if (d && d.moved <= (e.pointerType === 'mouse' ? 4 : 10) && open < 0) { const i = under(e); if (i >= 0) show(i) } });
   canvas.addEventListener('pointercancel', () => drag = null); canvas.addEventListener('pointerleave', () => { if (!drag) hover(-1) });
   let lastScroll = 0; addEventListener('scroll', () => lastScroll = performance.now(), { passive: true });   // a wheel that was already scrolling the page goes on scrolling it
   canvas.addEventListener('wheel', e => { const pinchy = e.ctrlKey || e.metaKey; if (!pinchy && (performance.now() - lastScroll < 420 || (e.deltaY > 0 && zoomTo <= .81))) return; e.preventDefault(); zoomTo = clamp(zoomTo * Math.exp(-e.deltaY * (pinchy ? .012 : .0026)), .8, 12); dirty = true }, { passive: false });
