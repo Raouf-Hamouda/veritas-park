@@ -81,6 +81,7 @@
     setTimeout(() => { set(lang); requestAnimationFrame(() => { if (mark) scrollTo({ top: scrollY + mark.getBoundingClientRect().top - top, behavior: 'instant' });
       root.classList.remove('lang-swap'); root.classList.add('lang-in'); setTimeout(() => root.classList.remove('lang-in'), 700) }) }, 250) };
   document.addEventListener('click', e => { const b = e.target.closest('[data-lang]'); if (b) { e.preventDefault(); swap(b.dataset.lang) } });
-  let saved = 'en'; try { saved = localStorage.getItem('v-lang') || 'en' } catch (e) {} if (saved === 'de') set('de');
+  // the first visit opens in the language of the visitor's browser (German for a browser set to German); after that, the choice made with the switch is kept
+  let saved = null; try { saved = localStorage.getItem('v-lang') } catch (e) {} if (!saved) saved = /^de\b/i.test((navigator.languages && navigator.languages[0]) || navigator.language || '') ? 'de' : 'en'; if (saved === 'de') set('de');
   window.veritasLang = set;
 })();
