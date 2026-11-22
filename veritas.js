@@ -1,0 +1,112 @@
+/* VERITAS, the script of the website. Small jobs only: the arrival tile, the clock in the logo, the menu,
+   the header that follows the ground under it, things arriving once, the arc, the square rows, the floors. */
+(() => {
+  const D = document, root = D.documentElement, body = D.body, $ = (s, e = D) => e.querySelector(s), $$ = (s, e = D) => [...e.querySelectorAll(s)];
+  const calm = matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  // the arrival: once per visit, the tile builds its twelve ticks, then the page opens
+  const gate = $('.gate'); let seen = false; try { seen = sessionStorage.getItem('v-gate'); sessionStorage.setItem('v-gate', 1) } catch (e) {}
+  if (gate) { if (seen || calm) gate.remove(); else setTimeout(() => { gate.classList.add('off'); setTimeout(() => gate.remove(), 500) }, 1200) }
+
+  // the logo is a clock set to the time in Wittenberge
+  const fmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false });
+  const now = () => { const p = {}; for (const x of fmt.formatToParts(new Date())) p[x.type] = +x.value; return [(p.hour % 12 + p.minute / 60) * 30, p.minute * 6 + p.second / 10, p.second * 6] };
+  const clock = () => { const a = now(); $$('.clock').forEach(svg => $$('.hand', svg).forEach((h, i) => h.setAttribute('transform', `rotate(${a[i]} ${h.getAttribute('x1')} ${h.getAttribute('y1')})`))) };
+  clock(); setInterval(clock, 1000); window.veritasTime = now;
+
+  // the menu
+  const btn = $('.menu-btn'), nav = $('.nav');
+  const menu = on => { root.classList.toggle('nav-open', on); btn.setAttribute('aria-expanded', on); btn.textContent = on ? 'Close' : 'Menu'; nav.toggleAttribute('inert', !on) };
+  btn && btn.addEventListener('click', () => menu(!root.classList.contains('nav-open')));
+  addEventListener('keydown', e => { if (e.key === 'Escape') menu(false); if ((e.key === 'g' || e.key === 'G') && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) { body.classList.toggle('grid'); scroll() } });
+
+  // square rows (p36): every block ends on a row of the grid
+  const probe = D.createElement('i'); probe.style.cssText = 'position:absolute;visibility:hidden;width:var(--row);height:0'; body.append(probe);
+  let row = 100; const blocks = $$('main>section,footer').filter(s => !s.matches('.top2,.call2,.hero,.wheel-sec,.urb'));   // the blocks that fill one screen keep the height of the screen
+  const snap = () => { row = probe.getBoundingClientRect().width; const all = $$('main>section,footer'), mark = all.find(s => s.getBoundingClientRect().bottom > 80), t0 = mark ? mark.getBoundingClientRect().top : 0;
+    for (const s of blocks) { s.style.minHeight = ''; } for (const s of blocks) { const h = s.getBoundingClientRect().height; s.style.minHeight = Math.ceil((h - 1) / row) * row + 'px' }
+    if (mark) { const d = mark.getBoundingClientRect().top - t0; if (Math.abs(d) > 1) scrollBy({ top: d, behavior: 'instant' }) } };   // the block being read never moves when the rows are set again
+
+  // the header takes the ink of the ground under it; a few things follow the scroll
+  const head = $('.head'), arc = $('.arc'), bleeds = $$('.bleed');
+  let tick = 0; const scroll = () => { if (tick) return; tick = requestAnimationFrame(() => { tick = 0;
+    root.classList.toggle('at-top', scrollY < innerHeight * .6); root.classList.toggle('scrolled', scrollY > 30);
+    const g = D.elementsFromPoint(innerWidth / 2, head.offsetHeight / 2).find(e => e.dataset && e.dataset.ground); head.classList.toggle('on-dark', !!g && g.dataset.ground === 'dark');
+    if (arc && !calm) { const r = arc.getBoundingClientRect(), p = (innerHeight - r.top) / (innerHeight + r.height); if (p > -.2 && p < 1.2) arc.style.setProperty('--turn', ((.5 - p) * 26).toFixed(2) + 'deg') }
+    if (!calm) for (const b of bleeds) { const r = b.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) b.style.setProperty('--par', ((innerHeight - r.top) / (innerHeight + r.height)).toFixed(3)) }
+    if (body.classList.contains('grid')) body.style.setProperty('--gy', -(scrollY % row) + 'px') }) };
+  addEventListener('scroll', scroll, { passive: true }); addEventListener('resize', () => { snap(); scroll() });
+  snap(); scroll(); (D.fonts ? D.fonts.ready : Promise.resolve()).then(() => { snap(); scroll() }); addEventListener('load', () => { snap(); scroll() });
+
+  // things arrive once; icons draw themselves line after line
+  $$('.draw').forEach(svg => $$('path', svg).forEach((p, i) => { p.setAttribute('pathLength', 1); p.style.setProperty('--i', i) }));
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) } }), { rootMargin: '0px 0px -8% 0px', threshold: .08 });
+  $$('.reveal,.draw').forEach(e => io.observe(e));
+  // on a phone nothing hovers: the field in the middle of the screen lights up
+  if (matchMedia('(hover:none)').matches) { const mid = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('lit-on', e.isIntersecting)), { rootMargin: '-42% 0px -42% 0px' }); $$('.fld').forEach(f => mid.observe(f)) }
+
+  // the building, floor by floor
+  $$('.floors').forEach(list => { if (list.closest('.stack')) return;   // the stacked plans have their own script (floors.js)
+    const imgs = $$('.plan img', list.closest('section')), bs = $$('button', list);
+    const pick = i => { bs.forEach((b, k) => b.setAttribute('aria-selected', k === i)); imgs.forEach((m, k) => m.classList.toggle('on', k === i)) };
+    bs.forEach((b, i) => { b.addEventListener('click', () => pick(i)); b.addEventListener('mouseenter', () => pick(i)) });
+    const fromLink = () => { const m = /^#floor-(\d)$/.exec(location.hash); if (m) { pick(+m[1]); setTimeout(() => list.closest('section').scrollIntoView({ behavior: 'smooth' }), 350) } }; fromLink(); addEventListener('hashchange', fromLink) });   // a floor chosen on the 3D model opens its plan here
+
+  // the pill is a little magnetic under the pointer (a mouse only)
+  if (matchMedia('(hover:hover)').matches && !calm) $$('.btn').forEach(b => { b.addEventListener('pointermove', e => { const r = b.getBoundingClientRect(); b.style.setProperty('--mx', ((e.clientX - r.left - r.width / 2) * .18).toFixed(1) + 'px'); b.style.setProperty('--my', ((e.clientY - r.top - r.height / 2) * .28).toFixed(1) + 'px') }); b.addEventListener('pointerleave', () => { b.style.setProperty('--mx', '0px'); b.style.setProperty('--my', '0px') }) });
+
+  // a picture opens to the full screen from where it stands, and goes back to its place (the wheel and the gallery use it)
+  window.veritasOpen = (img, title = '', line = '') => {
+    const r = img.getBoundingClientRect(), nw = img.naturalWidth || r.width, nh = img.naturalHeight || r.height, m = innerWidth < 820 ? 14 : 56;
+    const k = Math.min((innerWidth - 2 * m) / nw, (innerHeight - 2 * m) / nh), tw = nw * k, th = nh * k, tx = (innerWidth - tw) / 2, ty = (innerHeight - th) / 2;
+    // where the picture stands now, said in the terms of the big picture: a scale, a place, and the part of it that shows
+    const s0 = Math.max(r.width / tw, r.height / th), ox = r.left + r.width / 2 - tw * s0 / 2, oy = r.top + r.height / 2 - th * s0 / 2, ix = (tw * s0 - r.width) / 2 / s0, iy = (th * s0 - r.height) / 2 / s0;
+    const from = { transform: `translate(${ox}px,${oy}px) scale(${s0})`, clipPath: `inset(${iy}px ${ix}px)` }, to = { transform: `translate(${tx}px,${ty}px) scale(1)`, clipPath: 'inset(0px 0px)' };
+    const box = D.createElement('figure'); box.className = 'lb'; box.innerHTML = `<img alt=""><figcaption><b></b><span></span></figcaption><button class="round" aria-label="Close"><svg class="ico" viewBox="0 0 100 100"><path d="M12.5 12.5L87.5 87.5"/><path d="M87.5 12.5L12.5 87.5"/></svg></button>`;
+    const big = box.firstChild; big.src = img.currentSrc || img.src; big.style.width = tw + 'px'; big.style.height = th + 'px'; big.style.transition = 'none'; Object.assign(big.style, from);
+    box.querySelector('b').textContent = title; box.querySelector('span').textContent = line; body.append(box); img.style.visibility = 'hidden';
+    const spring = 'transform .7s cubic-bezier(.19,1,.22,1),clip-path .7s cubic-bezier(.19,1,.22,1)';
+    requestAnimationFrame(() => requestAnimationFrame(() => { big.style.transition = calm ? 'none' : spring; Object.assign(big.style, to); box.classList.add('on') }));
+    let shut = false; const close = () => { if (shut) return; shut = true; removeEventListener('keydown', key); box.classList.remove('on'); Object.assign(big.style, from); setTimeout(() => { img.style.visibility = ''; box.remove() }, calm ? 0 : 700) };
+    const key = e => { if (e.key === 'Escape') close() }; addEventListener('keydown', key); box.addEventListener('click', close); addEventListener('scroll', close, { once: true, passive: true });
+  };
+  $$('.mosaic button').forEach(b => b.addEventListener('click', () => window.veritasOpen(b.querySelector('img'))));
+
+  // the line of news is pulled sideways with the mouse, like with a finger; two round buttons move it by one news
+  $$('.strip').forEach(st => { let d = null; const one = () => st.querySelector('article').getBoundingClientRect().width + parseFloat(getComputedStyle(st).columnGap || 0);
+    st.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || e.button) return; d = { x: e.clientX, left: st.scrollLeft, moved: 0 } });
+    addEventListener('pointermove', e => { if (!d) return; const dx = e.clientX - d.x; d.moved = Math.max(d.moved, Math.abs(dx)); if (d.moved > 4) st.classList.add('drag'); st.scrollLeft = d.left - dx });
+    addEventListener('pointerup', () => { if (!d) return; const moved = d.moved; d = null; if (moved > 4) { st.addEventListener('click', e => { e.preventDefault(); e.stopPropagation() }, { once: true, capture: true }); const to = Math.round(st.scrollLeft / one()) * one(); st.scrollTo({ left: to, behavior: 'smooth' }); setTimeout(() => st.classList.remove('drag'), 450) } });
+    st.parentNode.querySelectorAll('[data-move]').forEach(b => b.addEventListener('click', () => st.scrollBy({ left: +b.dataset.move * one(), behavior: 'smooth' }))) });
+
+  // a pill that is a button catches a little light where the pointer is
+  $$('a.pill').forEach(p => p.addEventListener('pointermove', e => { const r = p.getBoundingClientRect(); p.style.setProperty('--px', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%'); p.style.setProperty('--py', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%') }));
+
+  // "others, please specify" shows its line only when picked
+  $$('[data-if]').forEach(el => { const [name, val] = el.dataset.if.split('='); const sync = () => { const c = $(`[name="${name}"]:checked`); el.hidden = !(c && c.value === val) }; $$(`[name="${name}"]`).forEach(i => i.addEventListener('change', sync)); sync() });
+
+  // a long sentence is set smaller than a short one, in both languages
+  // a word written with a hyphen (co-create) is never cut at its hyphen
+  const joined = () => { const w = D.createTreeWalker($('main'), NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) if (/\w-\w/.test(n.nodeValue) && n.parentElement.closest('h1,h2,h3,blockquote,.t-serif,.t-line')) n.nodeValue = n.nodeValue.replace(/(\w)-(?=\w)/g, '$1-\u2060') };
+  const fit = () => { joined(); $$('.t-serif,.t-line,.t-caps,.quote').forEach(e => { const n = e.textContent.trim().length; e.classList.toggle('long', n > 70 && n <= 150); e.classList.toggle('xlong', n > 150) }) };
+  fit(); snap(); addEventListener('veritas-lang', () => { fit(); snap(); scroll() });
+
+  // going to another page: this one fades out, the next one fades in
+  D.addEventListener('click', e => { const a = e.target.closest('a[href]'); if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || a.target) return; const href = a.getAttribute('href');
+    if (!/^[\w-]+\.html(#.*)?$/.test(href) || href.split('#')[0] === (location.pathname.split('/').pop() || 'index.html')) return; });   // (the fade is now done by the browser itself: see @view-transition in the style file)
+  addEventListener('pageshow', () => body.classList.remove('leaving'));
+
+  // a form tells its dial how far it is: the share of its questions that have an answer
+  $$('.form').forEach(form => { const tell = () => { const names = [...new Set($$('input,textarea', form).filter(i => !i.closest('[hidden]')).map(i => i.name))];
+      const done = names.filter(n => { const els = $$('input,textarea', form).filter(i => i.name === n); return els[0].type === 'radio' ? els.some(x => x.checked) : els[0].value.trim() });
+      dispatchEvent(new CustomEvent('veritas-progress', { detail: names.length ? done.length / names.length : 0 })) };
+    form.addEventListener('input', tell); form.addEventListener('change', tell); addEventListener('load', tell) });
+
+  // a picture that arrives late changes the height of its block: the square rows are set again
+  let late = 0; D.addEventListener('load', e => { if (e.target.tagName === 'IMG' && !e.target.closest('.fl-ui,.lb,.hero,.wheel,.col-pic,.top2,.call2,.bleed')) { clearTimeout(late); late = setTimeout(() => { snap(); scroll() }, 120) } }, true);
+
+  addEventListener('pageshow', scroll); D.addEventListener('visibilitychange', scroll);   // the ink of the menu bar is set again whenever the page is shown
+  // the next page is fetched as soon as the pointer comes near its link, so that it is there at once; and its first picture is fetched ahead
+  if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) { const sp = D.createElement('script'); sp.type = 'speculationrules'; sp.textContent = JSON.stringify({ prefetch: [{ where: { selector_matches: '.bar a, .nav a.sign, a.sbtn[href$=".html"]' }, eagerness: 'moderate' }] }); D.head.append(sp) }
+  addEventListener('load', () => setTimeout(() => ['place/b7_140', 'place/aerial_0', 'place/b4roof_038', 'place/b13_132', 'place/epp_9195'].forEach(n => { new Image().src = `img/${n}.jpg` }), 1500));
+})();
