@@ -132,11 +132,12 @@
   const el = D.createElement('div'); el.className = 'nl'; el.hidden = true;
   el.innerHTML = `<form class="nl-card" action="mailto:info@veritas-park.eu?subject=Newsletter" method="post" enctype="text/plain" role="dialog" aria-modal="true" aria-labelledby="nl-t">
     <button type="button" class="nl-x" aria-label="Close"><svg class="ico" viewBox="0 0 100 100"><path d="M12.5 12.5L87.5 87.5"/><path d="M87.5 12.5L12.5 87.5"/></svg></button>
-    <div class="nl-head"><b id="nl-t">Be the first to know</b><span>Subscribe to receive our newsletter on the place, its spaces, events and more</span></div>
+    <div class="nl-side dark end"><div class="nl-logo" aria-hidden="true"><i class="mk"></i></div><div class="nl-head"><b id="nl-t">Be the first to know</b><span>Subscribe to receive our newsletter on the place, its spaces, events and more</span></div></div>
+    <div class="nl-main">
     <fieldset class="nl-pick"><legend>I am interested in</legend>${box('News from VERITAS')}${box('Events and Club')}${box('Spaces to rent')}${['Offices and Co-working', 'Work Spaces', 'Conference Hall', 'Light Industry'].map(v => box(v, 1)).join('')}${box('Invest')}</fieldset>
-    <div class="nl-send"><label class="nl-mail"><span class="v-sr">E-Mail</span><input type="email" name="E-Mail" placeholder="E-Mail *" required autocomplete="email"></label>
-      <button class="nl-go" type="submit">Sign up</button>
-      <p>You can withdraw your consent at any time with the unsubscribe link in each newsletter</p><a href="https://veritas-park.eu/datenschutz" target="_blank" rel="noopener">Privacy Policy</a></div></form>`;
+    <div class="nl-send"><label class="nl-mail"><span>E-Mail *</span><input type="email" name="E-Mail" required autocomplete="email"></label>
+      <button class="sbtn nl-go" type="submit"><span>Sign up</span><svg class="curve" viewBox="0 0 100 100" aria-hidden="true"><path pathLength="1" d="M100 96.4A96.4 96.4 0 0 1 3.6 0"/></svg></button>
+      <p>You can withdraw your consent at any time with the unsubscribe link in each newsletter</p><a href="privacy.html">Privacy Policy</a></div></div></form>`;
   D.body.append(el);
   const all = [...el.querySelectorAll('input[type=checkbox]')], parent = all[2], kids = all.slice(3, 7);
   parent.addEventListener('change', () => kids.forEach(k => k.checked = parent.checked)); kids.forEach(k => k.addEventListener('change', () => parent.checked = kids.some(x => x.checked)));
