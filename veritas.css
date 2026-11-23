@@ -1083,7 +1083,7 @@ html[lang=de] .lang-tick i{transform:rotate(24deg)}.lang-tick:hover i{opacity:1}
 
 /* the wheel on a phone: more of the dark red light under it; the arrows and the name stand in the middle of that space */
 @media(max-width:820px){
-  .wheel-sec{height:calc(100svh + 260px)}
+  .wheel-sec{height:calc(100svh + 190px)}
   .wheel-sec .wheel{flex:0 0 auto;height:calc(var(--chh,346px) + 84px)}
   .wheel-cap{flex:1 1 auto;align-content:center;padding-top:0;padding-bottom:max(12px,env(safe-area-inset-bottom))}
 }
