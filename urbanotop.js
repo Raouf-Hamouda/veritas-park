@@ -228,26 +228,32 @@
     const numTags = plan ? KNOWN.map(k => { const t = tagFor(k.n === '110' ? '101-113' : k.n, 'n', new T.Vector3(k.at[0], (info[k.n] ? info[k.n].box.max.y : 8) + 1, -k.at[1])); if (info[k.n] && info[k.n].use) t.el.addEventListener('click', () => choose({ zone: info[k.n].zone.id, b: k.n })); return t }) : [];
 
     /* ---------- the camera: where it looks, from where, how close. Every move is flown, never cut. */
-    const home = plan ? { az: 0, el: 1.36, zoom: 1.55, x: 40, z: 40, y: 0 } : { az: .5, el: .64, zoom: 1.5, x: 40, z: 45, y: 0 }, view = { ...home }; let fly = null, W = 1, H = 1, base = 640, chosen = null, hot = null, level = 0;
+    const home = plan ? { az: 0, el: 1.36, zoom: 1.55, x: 40, z: 40, y: 0 } : { az: .5, el: .64, zoom: 1.5, x: 40, z: 45, y: 0 }, view = { ...home }; let fly = null, W = 1, H = 1, base = 640, chosen = null, hot = null, level = 0, born = 0;
     const flyTo = (goal, ms = 1150) => { let da = (goal.az ?? view.az) - view.az; da = ((da + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; fly = { from: { ...view }, to: { ...view, ...goal, az: view.az + da }, t0: performance.now(), ms }; dirty = true };
     const centreOf = box => [(box.min.x + box.max.x) / 2, (box.min.z + box.max.z) / 2];
     const zoneBox = z => { const b = new T.Box3(); z.poly.forEach(([x, y]) => b.expandByPoint(new T.Vector3(x, 0, -y))); return b };
-    const fit = (box, pad) => clamp(Math.min(base * 2 / (Math.max(box.max.x - box.min.x, 60) * pad), base * 2 * H / W / (Math.max(box.max.z - box.min.z, 60) * pad * .8)), 1, 14);
+    const fit = (box, pad) => clamp(Math.min(base * 2 / (Math.max(box.max.x - box.min.x, 60) * pad), base * 2 * Hv / W / (Math.max(box.max.z - box.min.z, 60) * pad * .8)), 1, 14);
+    // a phone: the list of quarters (or the menu bar) covers the top of the model and the card covers its foot. The model is shown in what is left between them:
+    // the picture is raised or lowered by half the difference (shift, in pixels), and a quarter is fitted to that free height (Hv), so nothing chosen hides behind a panel.
+    let shift = 0, shiftTo = 0, Hv = 1;
+    const inset = () => { const narrow = W <= 820, lb = $('.urb-list'), ib = narrow && !card.hidden ? card.offsetHeight : 0, it = !narrow ? 0 : chosen ? 62 : lb.offsetTop + lb.offsetHeight;
+      stage.style.setProperty('--card-h', ib + 'px'); shiftTo = (ib - it) / 2; Hv = Math.max(160, H - ib - it); if (!born) shift = shiftTo; dirty = true };
 
     function show() {   // the list, the card and the tags say where we are
       zoneBtns.forEach(b => { b.classList.toggle('on', !!chosen && chosen.zone === b.dataset.zone); b.classList.toggle('dim', !!chosen && chosen.zone !== b.dataset.zone) });
       const z = chosen && zones[chosen.zone], b = chosen && chosen.b && info[chosen.b]; card.hidden = !chosen; stage.classList.toggle('in-zone', !!chosen); stage.classList.toggle('in-building', !!b); stage.classList.toggle('in-13', !!b && b.n === '13');
-      if (!chosen) return; card.dataset.hue = z.hue; $('.urb-back span').textContent = b ? z.name : 'The whole site';
+      if (!chosen) return inset(); card.dataset.hue = z.hue; $('.urb-back span').textContent = b ? z.name : 'The whole site';
       $('.urb-kick').textContent = b ? z.name : 'Quarter'; card.querySelector('h3').textContent = b ? (b.label || 'Building ' + b.n) : z.name; $('.urb-text').textContent = b ? (b.use || '') : z.text;
       const sub = $('.urb-sub'); sub.innerHTML = '';
       if (b && b.n === '13') FLOORS13.slice().reverse().forEach((f, i) => { const k = FLOORS13.length - 1 - i; sub.insertAdjacentHTML('beforeend', `<li><a href="rent.html#floor-${FLOOR_PLAN[k]}"><i>${k === 0 ? '-1' : k === 7 ? 'R' : k - 1}</i>${f}</a></li>`) });
       else if (!b) Object.values(info).filter(x => x.zone === z && x.use).forEach(x => { const li = document.createElement('li'), a = document.createElement('button'); a.type = 'button'; a.innerHTML = `<i>${x.n === 'tower' || x.n === '110' ? '' : x.n}</i>${x.label || 'Building ' + x.n}`; a.addEventListener('click', () => choose({ zone: z.id, b: x.n })); li.append(a); sub.append(li) });
+      inset();
     }
     function choose(c) {   // nothing: the whole site. A quarter. A building in its quarter.
-      chosen = c; hot = null; for (const e of edges) e.material.opacity = c && c.b && e.userData.b === c.b ? .9 : .34; for (const k in zones) zones[k].to = c && k !== c.zone ? 1 : 0; level = !c ? 0 : c.b ? 2 : 1;
+      chosen = c; hot = null; for (const e of edges) e.material.opacity = c && c.b && e.userData.b === c.b ? .9 : .34; for (const k in zones) zones[k].to = c && k !== c.zone ? 1 : 0; level = !c ? 0 : c.b ? 2 : 1; show();
       if (!c) flyTo(home); else if (!c.b) { const bx = zoneBox(zones[c.zone]), [x, zz] = centreOf(bx); flyTo({ x, z: zz, y: 0, zoom: fit(bx, 1.5), el: .62, az: plan ? .5 : view.az }) }
       else { const g = info[c.b], [x, zz] = centreOf(g.box); flyTo({ x: x + (c.b === '13' ? -22 : 0), z: zz, zoom: fit(g.box, c.b === '13' ? 2.7 : c.b === 'tower' ? 2.1 : 2.2), el: c.b === 'tower' ? .2 : .5, y: c.b === 'tower' ? 37 * UP : 0, az: c.b === 'tower' ? Math.PI - .62 : c.b === '13' ? .62 : plan ? .5 : view.az }, c.b === 'tower' ? 1700 : 1300) }
-      open13 = c && c.b === '13' ? 1 : 0; show(); dirty = true; if (c && matchMedia('(hover:none)').matches) setFree(true);   // on a phone, choosing a quarter (on the model, on its name or in the list) enters the model
+      open13 = c && c.b === '13' ? 1 : 0; dirty = true; if (c && matchMedia('(hover:none)').matches) setFree(true);   // on a phone, choosing a quarter (on the model, on its name or in the list) enters the model
     }
     function hover(h) { const key = h && (h.b || h.zone), was = hot && (hot.b || hot.zone); if (key === was) return; hot = h; canvas.style.cursor = h ? 'pointer' : '';
       for (const e of edges) e.material.opacity = (h && h.b && e.userData.b === h.b) || (chosen && chosen.b && e.userData.b === chosen.b) ? .95 : .34;
@@ -284,7 +290,7 @@
     // the wheel zooms, on the point under the pointer. A wheel that was already scrolling the page goes on scrolling it; so does a zoom out when the whole site is in view.
     let lastScroll = 0; addEventListener('scroll', () => lastScroll = performance.now(), { passive: true }); const ZMIN = home.zoom * .7;
     canvas.addEventListener('wheel', e => { const pinchy = e.ctrlKey || e.metaKey; if (!pinchy && (performance.now() - lastScroll < 420 || (e.deltaY > 0 && view.zoom <= ZMIN + .001))) return; e.preventDefault();
-      const r = canvas.getBoundingClientRect(), px = e.clientX - r.left - r.width / 2, py = e.clientY - r.top - r.height / 2, a = view.az, s = sinEl(), u0 = 2 * base / (view.zoom * W);
+      const r = canvas.getBoundingClientRect(), px = e.clientX - r.left - r.width / 2, py = e.clientY - r.top - r.height / 2 + shift, a = view.az, s = sinEl(), u0 = 2 * base / (view.zoom * W);
       const z1 = clamp(view.zoom * Math.exp(-e.deltaY * (pinchy ? .012 : .0024)), ZMIN, 14), u1 = 2 * base / (z1 * W), k = u0 - u1;   // the point under the pointer stays under it
       view.x = clamp(view.x + px * k * Math.cos(a) + py * k / s * Math.sin(a), -R, R); view.z = clamp(view.z - px * k * Math.sin(a) + py * k / s * Math.cos(a), -R, R); view.zoom = z1; fly = null; dirty = true; touched = performance.now() }, { passive: false });
     // reaching this part of the page, the model takes the whole screen: the page settles on it
@@ -301,14 +307,15 @@
       for (const m of glass) m.emissiveIntensity = evening * .8; api.evening = evening; shadowDirty = dirty = true }
 
     /* ---------- the frame: the arrival, the flights, the fading of the quarters not chosen, building 13 opening, the water, the tags */
-    const calm = matchMedia('(prefers-reduced-motion:reduce)').matches; let lastDraw = 0, shadowTick = 0, keepShadow = false, visible = false, born = 0, openNow = 0, lastT = 0, skip = false, towerRise = -1, townRise = -1, lastSec = -1;
+    const calm = matchMedia('(prefers-reduced-motion:reduce)').matches; let lastDraw = 0, shadowTick = 0, keepShadow = false, visible = false, openNow = 0, lastT = 0, skip = false, towerRise = -1, townRise = -1, lastSec = -1;
     const order = ['harbour', 'park', 'industrial', 'creative', 'culture', 'factory'];
-    function size() { W = stage.clientWidth; H = stage.clientHeight; if (!W || !H) return; renderer.setSize(W, H, false); base = W / H > 1.25 ? 640 : 420; dirty = true }
+    function size() { W = stage.clientWidth; H = stage.clientHeight; if (!W || !H) return; renderer.setSize(W, H, false); base = W / H > 1.25 ? 640 : 420; inset() }
     function frame(now) { if (!visible) return; requestAnimationFrame(frame); const dt = Math.min(50, now - lastT); lastT = now; let moving = false;
       if (!born) born = now; const age = (now - born) / 1000;   // the arrival: the town, then quarter after quarter, the tower last
       const wr = calm ? 1 : out(clamp(age / .9, 0, 1)); if (wr !== townRise) { townRise = wr; town.scale.y = wood.scale.y = Math.max(.0001, wr); moving = shadowDirty = true }
       order.forEach((id, i) => { const z = zones[id], r = calm ? 1 : out(clamp((age - .5 - i * .2) / .9, 0, 1)); if (r !== z.rise) { z.rise = r; z.group.scale.y = Math.max(.0001, r); moving = shadowDirty = true } });
       const tr = calm ? 1 : out(clamp((age - 2) / 1.1, 0, 1)); if (tr !== towerRise) { towerRise = tr; tower.scale.y = Math.max(.0001, tr); moving = shadowDirty = true }
+      if (Math.abs(shiftTo - shift) > .4) { shift += (shiftTo - shift) * Math.min(1, dt * .008); moving = true }
       if (fly) { const t = clamp((now - fly.t0) / fly.ms, 0, 1), k = ease(t); for (const key in view) view[key] = lerp(fly.from[key], fly.to[key], k); moving = true; if (t === 1) fly = null }
       for (const k in zones) { const z = zones[k]; if (Math.abs(z.to - z.k) > .003) { z.k += (z.to - z.k) * Math.min(1, dt * .009); moving = true; for (const m of z.mats) { m.color.copy(m.userData.base).lerp(m.userData.pale, z.k * .9); if (m.userData.wash) m.emissive.copy(m.userData.pale).multiplyScalar(z.k * .6) } } }
       if (Math.abs(open13 - openNow) > .002) { openNow += (open13 - openNow) * Math.min(1, dt * .006); moving = shadowDirty = true; floors.forEach((g, i) => g.position.y = openNow * i * 7.5) }
@@ -317,13 +324,13 @@
       for (const f of api.hooks) f(now);
       const dpr = fly || drag || pinch || now - touched < 260 || age < 3.6 ? DPR_MOVE : DPR_REST; if (dpr !== dprNow) { dprNow = dpr; renderer.setPixelRatio(dpr); renderer.setSize(W, H, false); dirty = true }   // moving: a light picture; still: one drawn at the true density of the screen
       if (!moving && !dirty) return; dirty = false; lastDraw = now; if (shadowDirty && age < 3.4 && (shadowTick = (shadowTick + 1) % 5)) shadowDirty = false, keepShadow = true; else if (keepShadow && age >= 3.4) shadowDirty = true, keepShadow = false;
-      const a = view.az + sway, D = 2200; cam.left = -base; cam.right = base; cam.top = base * H / W; cam.bottom = -base * H / W; cam.zoom = view.zoom; cam.updateProjectionMatrix();
+      const a = view.az + sway, D = 2200; const lift = shift * 2 * base / (W * view.zoom); cam.left = -base; cam.right = base; cam.top = base * H / W - lift; cam.bottom = -base * H / W - lift; cam.zoom = view.zoom; cam.updateProjectionMatrix();
       cam.position.set(view.x + Math.sin(a) * Math.cos(view.el) * D, view.y + Math.sin(view.el) * D, view.z + Math.cos(a) * Math.cos(view.el) * D); cam.lookAt(view.x, view.y, view.z); cam.updateMatrixWorld();
       if (shadowDirty) { renderer.shadowMap.needsUpdate = true; shadowDirty = false } renderer.render(scene, cam);
       const put = (t, v) => { if (t.lift) v.y = t.lift(); v.project(cam); t.el.style.transform = `translate(${((v.x + 1) / 2 * W).toFixed(1)}px,${((1 - v.y) / 2 * H).toFixed(1)}px)` };
       for (const t of zoneTags) { put(t, V.copy(t.p)); t.el.style.visibility = view.zoom > 3.4 ? 'hidden' : '' } for (const t of numTags) put(t, V.copy(t.p));
       const fh = b13.max.y / 6; floorTags.forEach((t, i) => { put(t, V.set(b13.max.x + 2, fh * (i + .5) + openNow * i * 7.5, b13.max.z)); t.el.style.opacity = clamp(openNow * 1.6 - .3, 0, 1) }) }
-    new ResizeObserver(size).observe(stage); size(); daylight(); drawFace(); setInterval(() => { drawFace(); if (!stage.dataset.hour) daylight() }, 30000); show();
+    new ResizeObserver(size).observe(stage); new ResizeObserver(inset).observe(card); size(); daylight(); drawFace(); setInterval(() => { drawFace(); if (!stage.dataset.hour) daylight() }, 30000); show();
     new IntersectionObserver(es => { const was = visible; visible = es[0].isIntersecting; if (!visible && free) setFree(false); if (visible && !was) { dirty = true; lastT = performance.now(); requestAnimationFrame(frame) } }, { rootMargin: '0px 0px -10% 0px' }).observe(stage);
     // the detail modules: railway and train, roof walls and gates, kerbs and lamps, people, cars and boats
     Object.assign(api, { T, scene, MAP, R, UP, HUE, zones, zoneAt, info, town, mix, mat, pairs, inside, area, centroid, greens, waters, wood, flat, lay, shapeOf, b13, roof13: floors[floors.length - 1], lite, mark: () => { dirty = shadowDirty = true } });

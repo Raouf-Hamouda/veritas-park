@@ -13,7 +13,8 @@
     const f = figs[i]; if (!first) place.classList.add('swap'); name.textContent = f.dataset.name; line.textContent = f.dataset.line;
     requestAnimationFrame(() => requestAnimationFrame(() => place.classList.remove('swap')));
   }
-  const loaded = img => { if (img.complete && img.naturalWidth) return Promise.resolve(); img.loading = 'eager'; return Promise.race([img.decode().catch(() => {}), new Promise(r => setTimeout(r, 4000))]) };
+  const loaded = img => { if (img.dataset.src) { if (img.dataset.srcset) img.srcset = img.dataset.srcset; img.src = img.dataset.src; delete img.dataset.src }   // a picture is only asked for when its turn comes
+    if (img.complete && img.naturalWidth) return Promise.resolve(); return Promise.race([img.decode().catch(() => {}), new Promise(r => setTimeout(r, 4000))]) };
   const arm = () => { clearTimeout(timer); if (!calm) timer = setTimeout(() => inView && !document.hidden ? go(cur + 1) : arm(), HOLD) };
   function go(i) {
     i = (i % n + n) % n; if (i === cur) return; const mine = ++ask; clearTimeout(timer);
@@ -27,4 +28,5 @@
   new IntersectionObserver(es => inView = es[0].isIntersecting, { threshold: .25 }).observe(hero);
   addEventListener('veritas-lang', () => label(cur, true));
   label(0, true); arm();
+  const second = () => setTimeout(() => loaded(figs[1 % n].querySelector('img')), 600); document.readyState === 'complete' ? second() : addEventListener('load', second);   // the second picture comes once the page itself has arrived
 })();

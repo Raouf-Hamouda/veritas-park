@@ -11,6 +11,8 @@
   // the long ticks of the logo stand between the pictures
   const marks = cards.map(() => { const m = document.createElement('i'); m.className = 'mark'; ring.append(m); return m });
 
+  // a picture is asked for only when the wheel comes near the screen and the picture is one of those that show
+  let near = false; const fill = i => { const im = imgs[i]; if (!im.dataset.src) return; if (im.dataset.srcset) im.srcset = im.dataset.srcset; im.src = im.dataset.src; delete im.dataset.src };
   let R = 800, cw = 360, ch = 470, rot = calm ? 0 : 42, vel = 0, target = 0, mode = 'spring', active = -1, running = false, visible = false, last = 0;
   function measure() {
     const W = wheel.clientWidth, phone = W < 820, row = parseFloat(getComputedStyle(document.querySelector('body>i')).width) || 100;
@@ -25,7 +27,7 @@
     for (let i = 0; i < N; i++) {
       const a = norm(i * STEP + rot), far = Math.abs(a) > 78, c = cards[i], k = Math.min(1, Math.abs(a) / STEP);
       c.style.visibility = far ? 'hidden' : 'visible';
-      if (!far) { c.style.transform = `rotate(${a.toFixed(3)}deg) translateY(${(-R).toFixed(1)}px) scale(${(1 - .13 * k).toFixed(4)})`; c.style.filter = `brightness(${(1 - .42 * k).toFixed(3)})`; c.style.zIndex = 100 - Math.round(Math.abs(a));
+      if (!far) { if (near) fill(i); c.style.transform = `rotate(${a.toFixed(3)}deg) translateY(${(-R).toFixed(1)}px) scale(${(1 - .13 * k).toFixed(4)})`; c.style.setProperty('--dim', (.42 * k).toFixed(3)); c.style.zIndex = 100 - Math.round(Math.abs(a));
         imgs[i].style.transform = `translateX(${(a / STEP * 5.5).toFixed(2)}%)` }   // the picture slides a little inside its frame: depth
       const b = norm((i + .5) * STEP + rot), m = marks[i]; m.style.visibility = Math.abs(b) > 78 ? 'hidden' : 'visible'; m.style.transform = `rotate(${b.toFixed(3)}deg) translateY(${(-R).toFixed(1)}px)`;
     }
@@ -53,7 +55,7 @@
   const end = tap => { const d = drag; drag = null; wheel.classList.remove('drag'); if (!d) return;
     if (tap) { mode = 'spring'; if (d.card) { const i = cards.indexOf(d.card), a = norm(i * STEP + rot); if (Math.abs(a) < 1 && i === active) open(i); else { target = rot - a; run() } } else settle(); return }
     if (!d.turning) return settle();   // the page scrolled: the wheel rests on its hour
-    const [t0, x0] = d.trail[0], [t1, x1] = d.trail[d.trail.length - 1], v = t1 > t0 ? (x1 - x0) / (t1 - t0) : 0;   // pixels per millisecond
+    const [t0, x0] = d.trail[0], [t1, x1] = d.trail[d.trail.length - 1], v = (x1 - x0) / Math.max(16, t1 - t0);   // pixels per millisecond (a phone can hand over several moves of a quick flick with one time)
     vel = v * 1000 / R * 180 / Math.PI; settle(vel * .23) };
   // a mouse
   wheel.addEventListener('pointerdown', e => { if (e.button || e.pointerType === 'touch') return; begin(e.clientX, e.clientY, e.timeStamp, e.target, false) });
@@ -66,7 +68,7 @@
   wheel.addEventListener('touchmove', e => { if (!drag || !drag.touch) return; const p = [...e.touches].find(q => q.identifier === drag.id); if (!p) return;
     if (!drag.turning) { const dx = Math.abs(p.clientX - drag.x), dy = Math.abs(p.clientY - drag.y); if (dx + dy < 4) return;
       if (dx < dy * SLANT) return end(false);
-      drag.turning = true; drag.x = p.clientX; drag.y = p.clientY; drag.moved = 6; drag.trail = [[e.timeStamp, p.clientX]] }
+      drag.turning = true; drag.x = p.clientX; drag.y = p.clientY; drag.moved = 6 }   // the trail keeps the first touch: a flick so quick that the phone reports it in one move still throws the wheel
     if (e.cancelable) e.preventDefault(); move(p.clientX, p.clientY, e.timeStamp) }, { passive: false });
   wheel.addEventListener('touchend', e => { if (!drag || !drag.touch) return; const tap = !drag.turning && e.timeStamp - drag.t0 < 700; if (tap && e.cancelable) e.preventDefault(); end(tap) });   // no second click after the tap: it used to close the picture it had just opened
   wheel.addEventListener('touchcancel', () => { if (drag && drag.touch) end(false) });
@@ -77,6 +79,7 @@
   sec.querySelectorAll('[data-turn]').forEach(b => b.addEventListener('click', () => turn(+b.dataset.turn)));
   function open(i) { const c = cards[i]; window.veritasOpen && window.veritasOpen(imgs[i], c.dataset.name, c.dataset.line) }
 
+  new IntersectionObserver((es, io) => { if (es[0].isIntersecting) { near = true; io.disconnect(); draw() } }, { rootMargin: '120% 0px' }).observe(wheel);
   new ResizeObserver(measure).observe(wheel);
   new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible) run() }, { rootMargin: '0px 0px -12% 0px' }).observe(wheel);
   addEventListener('veritas-lang', () => { active = -1; draw() });

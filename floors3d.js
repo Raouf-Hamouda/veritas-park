@@ -32,9 +32,11 @@
     shadow.position.set(3, -.6, 5); sheet.userData.i = i;
     const L = { i, k, g, sheet, edge, shadow, w: WIDE, d: WIDE * .54, y: 0, slide: 0, op: 1 };
     const size = () => { sheet.scale.set(L.w, L.d, 1); edge.scale.set(L.w, L.d, 1); shadow.scale.set(L.w * 256 / 176, L.d * 128 / 60, 1) }; size();
-    loader.load(src, tex => { tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); const im = tex.image, s = Math.min(WIDE / im.width, DMAX / im.height); L.w = im.width * s; L.d = im.height * s; size(); L.tex = tex; L.img = im; sheet.material.map = tex; sheet.material.needsUpdate = true; dirty = true });
+    L.load = () => loader.load(src, tex => { tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); const im = tex.image, s = Math.min(WIDE / im.width, DMAX / im.height); L.w = im.width * s; L.d = im.height * s; size(); L.tex = tex; L.img = im; sheet.material.map = tex; sheet.material.needsUpdate = true; dirty = true });
     return L;
   });
+  // the nine drawings (4.7 MB) are asked for only when the block comes near the screen, not when the page opens
+  new IntersectionObserver((es, io) => { if (es.some(e => e.isIntersecting)) { io.disconnect(); layers.forEach(L => L.load()) } }, { rootMargin: '150% 0px' }).observe(view);
 
   // on the model: the mark of each floor at the corner of its sheet, and the way back to the stack
   const ui = document.createElement('div'); ui.className = 'fl-ui';
@@ -127,13 +129,15 @@
   // a floor chosen on the 3D model of the site arrives here by its link (rent.html#floor-3)
   const fromLink = () => { const m = /^#floor-(\d)$/.exec(location.hash); if (m) { show(+m[1]); setTimeout(() => document.getElementById('plans').scrollIntoView({ behavior: 'smooth' }), 400) } }; fromLink(); addEventListener('hashchange', fromLink);
 
-  /* On a phone or a tablet there is no 3D engine here: it was heavy and could not be handled with fingers.
-     The stack is nine light pictures of the sheets, laid as layers. A touch on a layer, or on its name, opens the drawing on the whole screen.
+  /* On a phone or a tablet there is no 3D engine here (it was heavy), but the stack is a real stack again (his words, 23 Nov: "i can no more get the 3d feel and swipe with my finger and have the animation").
+     Nine light pictures of the sheets stand on one vertical axis, seen from above at an angle; the browser itself turns each sheet in space.
+     A finger across turns the stack round its axis, and it keeps turning a little when the finger leaves; a finger up or down scrolls the page. Left alone, the stack sways slowly.
+     Arriving on the screen, the sheets rise from a flat pile and the stack turns into place. A touch on a sheet, or on its name: it slides out like a drawer, then opens on the whole screen.
      There: one finger moves it, two fingers zoom, a double tap comes close or steps back, and two tiles zoom for those who do not pinch. */
   function phone() {
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), ico = d => `<svg class="ico" viewBox="0 0 100 100" aria-hidden="true">${d.map(p => `<path d="${p}"/>`).join('')}</svg>`;
     canvas.remove(); const wrap = document.createElement('div'); wrap.className = 'fs';
-    wrap.innerHTML = files.map((f, i) => `<button type="button" class="fs-l" style="--t:${i};z-index:${N - i}" data-i="${i}"><span><img src="${f.replace(/floor_(\d)\.svg$/, 'thumb_$1.png')}" alt="" decoding="async"></span><b>${btns[i].querySelector('i').textContent}</b></button>`).join(''); view.append(wrap);
+    wrap.innerHTML = files.map((f, i) => `<button type="button" class="fs-l" style="--t:${i};z-index:${N - i}" data-i="${i}"><span><em><img src="${f.replace(/floor_(\d)\.svg$/, 'thumb_$1.png')}" alt="" loading="lazy" decoding="async"></em></span><b>${btns[i].querySelector('i').textContent}</b></button>`).join(''); view.append(wrap);
     const sheet = document.createElement('div'); sheet.className = 'fl-sheet full'; sheet.hidden = true;
     sheet.innerHTML = `<img alt="" draggable="false"><div class="fl-bar"><b></b><span><button type="button" class="round" data-z="-1" aria-label="Further">${ico(['M10 50H90'])}</button><button type="button" class="round" data-z="1" aria-label="Closer">${ico(['M50 10V90', 'M10 50H90'])}</button><button type="button" class="round" data-z="0" aria-label="Close">${ico(['M15 15L85 85', 'M85 15L15 85'])}</button></span></div>`;
     document.body.append(sheet); const pic = sheet.firstChild, title = sheet.querySelector('.fl-bar b'), ZMAX = 8, pts = new Map();
@@ -146,7 +150,7 @@
     const mid = (x, y) => { const r = sheet.getBoundingClientRect(); return [x - r.left - r.width / 2, y - r.top - r.height / 2] };
     const zoomAt = (z1, mx, my) => { z1 = clamp(z1, 1, ZMAX); const k = z1 / sz; sxo = mx - (mx - sxo) * k; syo = my - (my - syo) * k; sz = z1; if (sz === 1) sxo = syo = 0; setPic() };
     const open = i => { mark(i); title.textContent = btns[i].querySelector('span').textContent.trim(); reset(); pic.src = files[i]; sheet.hidden = false; requestAnimationFrame(() => sheet.classList.add('on')) };
-    const close = () => { mark(-1); sheet.classList.remove('on'); sheet.hidden = true; pts.clear(); grab = two = null };
+    const close = () => { mark(-1); sheet.classList.remove('on'); sheet.hidden = true; pts.clear(); grab = two = null; pull(-1); swayAt = performance.now(); kick() };
     sheet.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; pts.set(e.pointerId, e); try { sheet.setPointerCapture(e.pointerId) } catch (x) {}
       if (pts.size === 2) { const [p, q] = [...pts.values()]; two = { d: Math.hypot(p.clientX - q.clientX, p.clientY - q.clientY) || 1, sz, sxo, syo, m: mid((p.clientX + q.clientX) / 2, (p.clientY + q.clientY) / 2) }; grab = null }
       else grab = { x: e.clientX, y: e.clientY, ox: sxo, oy: syo, moved: 0 } });
@@ -160,8 +164,33 @@
     sheet.addEventListener('pointerup', lift); sheet.addEventListener('pointercancel', lift);
     sheet.addEventListener('touchmove', e => e.preventDefault(), { passive: false }); sheet.addEventListener('gesturestart', e => e.preventDefault());
     sheet.querySelector('.fl-bar').addEventListener('click', e => { const b = e.target.closest('[data-z]'); if (!b) return; const z = +b.dataset.z; z ? zoomAt(sz * (z > 0 ? 1.8 : 1 / 1.8), 0, 0) : close() });
-    wrap.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) open(+b.dataset.i) });
-    btns.forEach((b, i) => b.addEventListener('click', () => open(i)));
+    // ---- the stack under the finger
+    const calm = matchMedia('(prefers-reduced-motion:reduce)').matches, out = t => 1 - Math.pow(1 - t, 3), layers = [...wrap.children], TURN = .45, SLANT = .8;   // TURN: degrees for one pixel of finger; SLANT: as on the wheel of the home page
+    let az = -30, vel = 0, rise = calm ? 1 : 0, born = 0, seen = false, raf = 0, hold = null, swayAt = 0, sway = 0, lastT = 0, pulled = -1;
+    const paint = () => { wrap.style.setProperty('--az', (az + sway - (1 - rise) * 50).toFixed(2) + 'deg'); wrap.style.setProperty('--rise', rise.toFixed(4)) };
+    const tick = now => { raf = 0; if (!seen || !sheet.hidden) return; const dt = Math.min(50, now - lastT || 16); lastT = now; let live = false;
+      if (rise < 1) { if (!born) born = now; rise = out(Math.min(1, (now - born) / 1200)); live = true }
+      if (!hold && Math.abs(vel) > .003) { az += vel * dt; vel *= Math.pow(.9945, dt); live = true; swayAt = now } else if (!hold) vel = 0;   // it keeps turning, and slows down
+      sway = hold || calm || pulled >= 0 || rise < 1 ? 0 : Math.sin((now - swayAt) / 2600) * 3.4; paint();
+      if (live || hold || (!calm && pulled < 0)) raf = requestAnimationFrame(tick) };
+    const kick = () => { if (!raf && seen) { lastT = performance.now(); raf = requestAnimationFrame(tick) } };
+    const pull = i => { pulled = i; layers.forEach((l, k) => l.classList.toggle('out', k === i)); wrap.classList.toggle('one', i >= 0) };
+    const choose = i => { pull(i); mark(i); setTimeout(() => open(i), calm ? 0 : 420) };   // the drawer comes out, then the sheet opens
+    const room = () => wrap.style.setProperty('--sp', Math.max(18, Math.min(44, (wrap.clientHeight - wrap.clientWidth * .5) / (N - 1))).toFixed(1) + 'px');   // the room between two floors: the whole stack fits its block
+    new ResizeObserver(room).observe(wrap); room(); paint();
+    new IntersectionObserver(es => { seen = es[0].isIntersecting; if (seen) { swayAt = performance.now(); kick() } }, { threshold: .25 }).observe(wrap);
+    wrap.addEventListener('touchstart', e => { if (e.touches.length > 1) { hold = null; return } const q = e.touches[0]; az += sway; sway = 0; vel = 0; hold = { x: q.clientX, y: q.clientY, az, turning: false, id: q.identifier, t0: e.timeStamp, trail: [[e.timeStamp, q.clientX]], l: e.target.closest('[data-i]') }; kick() }, { passive: true });
+    wrap.addEventListener('touchmove', e => { if (!hold) return; const q = [...e.touches].find(t => t.identifier === hold.id); if (!q) return;
+      if (!hold.turning) { const dx = Math.abs(q.clientX - hold.x), dy = Math.abs(q.clientY - hold.y); if (dx + dy < 4) return; if (dx < dy * SLANT) { hold = null; swayAt = performance.now(); return }   // up or down: the page scrolls
+        hold.turning = true; hold.x = q.clientX }
+      if (e.cancelable) e.preventDefault(); az = hold.az - (q.clientX - hold.x) * TURN; hold.trail.push([e.timeStamp, q.clientX]); if (hold.trail.length > 6) hold.trail.shift() }, { passive: false });
+    wrap.addEventListener('touchend', e => { const h = hold; hold = null; swayAt = performance.now(); if (!h) return;
+      if (h.turning) { const [t0, x0] = h.trail[0], [t1, x1] = h.trail[h.trail.length - 1]; vel = Math.max(-1.2, Math.min(1.2, -(x1 - x0) / Math.max(16, t1 - t0) * TURN)); return }
+      if (e.timeStamp - h.t0 < 700 && h.l) { if (e.cancelable) e.preventDefault(); choose(+h.l.dataset.i) } });
+    wrap.addEventListener('touchcancel', () => { hold = null; swayAt = performance.now() });
+    wrap.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) choose(+b.dataset.i) });   // a mouse or a keyboard
+    btns.forEach((b, i) => b.addEventListener('click', () => choose(i)));
+    view.fstack = { get az() { return az }, get rise() { return rise }, get pulled() { return pulled } };   // for the checks
     const m = /^#floor-(\d)$/.exec(location.hash); if (m) open(+m[1]); mark(-1);
   }
 })();

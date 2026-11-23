@@ -7,7 +7,7 @@
 <meta name="color-scheme" content="light only">
 <title>About, VERITAS</title>
 <link rel="icon" href="img/favicon.svg">
-<link rel="stylesheet" href="veritas.css?v=53">
+<link rel="stylesheet" href="veritas.css?v=55">
 </head>
 <!-- VERITAS, the About page. Written by hand, 22 Nov 2026 (round 3). Words and pictures: veritas-park.eu/about. Look: the brand book. -->
 <body class="v" data-hue="blue">
@@ -35,7 +35,7 @@
 
 <!-- the opening: the factory seen from the roof of building 4, and the first sentence of the live page -->
 <section class="top2" data-ground="dark">
-  <img src="img/place/b4roof_038.jpg" alt="The factory seen from the roof of building 4" fetchpriority="high">
+  <img src="img/place/b4roof_038.jpg" srcset="img/place/m/b4roof_038.jpg 1280w, img/place/b4roof_038.jpg 2000w" alt="The factory seen from the roof of building 4" fetchpriority="high">
   <div>
     <span class="t-brush reveal">About us</span>
     <h1 class="t-line reveal" style="--d:90ms">VERITAS is an <span class="pill">Urbanotop</span></h1>
@@ -45,7 +45,7 @@
 
 <!-- the quotation of the live page, beside the portrait the live page sets behind it. No word stands on the face. -->
 <section class="qsec dark" data-ground="dark">
-  <figure class="reveal"><img src="img/about_top.jpg" alt="Buckminster Fuller" loading="lazy" style="object-position:38% 25%"></figure>
+  <figure class="reveal"><img src="img/about_top.jpg" srcset="img/m/about_top.jpg 1280w, img/about_top.jpg 2200w" alt="Buckminster Fuller" loading="lazy" style="object-position:38% 25%"></figure>
   <div><i class="mark"></i><blockquote class="quote reveal">“You never change things by fighting the existing reality. To change something, build a new model that makes the existing model obsolete.”</blockquote><span class="t-brush said reveal" style="--d:120ms">Buckminster Fuller</span></div>
 </section>
 
@@ -95,7 +95,7 @@
 
 <!-- the height of this block is the screen divided by the golden number (61.8 %), the sentence stands on the golden line of the block and takes 61.8 % of its width -->
 <section class="call2 gold" data-ground="dark">
-  <img src="img/place/b7_213.jpg" alt="The clock tower seen through a window of building 7" loading="lazy">
+  <img src="img/place/b7_213.jpg" srcset="img/place/m/b7_213.jpg 1280w, img/place/b7_213.jpg 2000w" alt="The clock tower seen through a window of building 7" loading="lazy">
   <div><h2 class="t-line reveal">Every step forward starts with a vision. <span class="pill">What’s yours?</span></h2></div>
 </section>
 
@@ -108,7 +108,7 @@
 <section class="white" data-ground="light">
   <div class="mosaic">
     <button type="button" style="--s:5;--sp:6;--r:4/5" aria-label="Open the picture"><img src="img/c36_1.jpg" alt="Chaussee36" loading="lazy"></button>
-    <button type="button" style="--s:7;--sp:6;--r:auto" aria-label="Open the picture"><img src="img/c36_4.jpg" alt="Chaussee36" loading="lazy"></button>
+    <button type="button" style="--s:7;--sp:6;--r:auto" aria-label="Open the picture"><img src="img/c36_4.jpg" srcset="img/m/c36_4.jpg 1280w, img/c36_4.jpg 1500w" alt="Chaussee36" loading="lazy"></button>
     <button type="button" style="--s:7;--sp:6;--r:3/2" aria-label="Open the picture"><img src="img/c36_2.jpg" alt="Chaussee36" loading="lazy"></button>
     <button type="button" style="--s:5;--sp:6;--r:auto" aria-label="Open the picture"><img src="img/c36_3.jpg" alt="Chaussee36" loading="lazy"></button>
   </div>
@@ -124,7 +124,7 @@
 
 <!-- the invitation of the live page -->
 <section class="call2" data-ground="dark">
-  <img src="img/place/epp_0945.jpg" alt="" loading="lazy">
+  <img src="img/place/epp_0945.jpg" srcset="img/place/m/epp_0945.jpg 1280w, img/place/epp_0945.jpg 2000w" alt="" loading="lazy">
   <div>
     <h2 class="t-caps m reveal">Ready to shape the future with us?</h2>
     <p class="t-body reveal" style="--d:90ms;margin-top:calc(var(--row)*.26);font-size:clamp(18px,1.5vw,24px);max-width:32em;color:var(--on-dark)">Whether you’re a creator, thinker, or dreamer, or doer, VERITAS is for you, always open for new bold ideas. So step into the Urbanotop and make your mark, because the future doesn’t just happen. We make it happen. Together.</p>
@@ -143,19 +143,10 @@
   </div>
 </footer>
 
-<script src="veritas.js?v=52"></script>
+<script src="veritas.js?v=53"></script>
 <script src="symbol.js?v=43"></script>
 <script src="de.js?v=31"></script>
 <script src="i18n.js?v=46" defer></script>
-<script src="lib/three.min.js" defer></script>
-<script src="site_map.js?v=34" defer></script>
-<script src="urb_kit.js?v=37" defer></script>
-<script src="urb_water.js?v=37" defer></script>
-<script src="urb_ground.js?v=37" defer></script>
-<script src="urb_rail.js?v=37" defer></script>
-<script src="urb_roofs.js?v=37" defer></script>
-<script src="urb_trees.js?v=50" defer></script>
-<script src="urb_sign.js?v=37" defer></script>
-<script src="urbanotop.js?v=51" defer></script>
+<script src="later.js?v=1" data-near="[data-urbanotop],.stack .view" data-load="lib/three.min.js,site_map.js?v=34,urb_kit.js?v=37,urb_water.js?v=37,urb_ground.js?v=37,urb_rail.js?v=37,urb_roofs.js?v=37,urb_trees.js?v=50,urb_sign.js?v=37,urbanotop.js?v=52"></script>
 </body>
 </html>
