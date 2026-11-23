@@ -167,3 +167,8 @@
     const t = document.createElement('button'); t.type = 'button'; t.className = 'lang-tick'; t.setAttribute('aria-label', 'EN / DE'); t.innerHTML = '<i></i>';
     t.addEventListener('click', () => (document.documentElement.lang === 'de' ? en : de).click()); en.after(t) });
 })();
+
+/* past the page end (a phone's bottom bar, an overscroll) the colour is the one at the foot of the page, in its own hue */
+(() => { const f = document.querySelector('.footer'); if (!f) return; const h = getComputedStyle(f).getPropertyValue('--h-dark').trim() || '#421616';
+  const hex = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(h), rgb = /(\d+)\D+(\d+)\D+(\d+)/.exec(h), c = hex ? hex.slice(1).map(x => parseInt(x, 16)) : rgb ? rgb.slice(1).map(Number) : null;
+  if (c) document.documentElement.style.backgroundColor = `rgb(${c.map(v => Math.round(v * .62)).join(',')})` })();

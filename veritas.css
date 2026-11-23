@@ -1083,7 +1083,12 @@ html[lang=de] .lang-tick i{transform:rotate(24deg)}.lang-tick:hover i{opacity:1}
 
 /* the wheel on a phone: more of the dark red light under it; the arrows and the name stand in the middle of that space */
 @media(max-width:820px){
-  .wheel-sec{height:calc(100svh + 130px)}
+  .wheel-sec{height:calc(100svh + 260px)}
   .wheel-sec .wheel{flex:0 0 auto;height:calc(var(--chh,346px) + 84px)}
   .wheel-cap{flex:1 1 auto;align-content:center;padding-top:0;padding-bottom:max(12px,env(safe-area-inset-bottom))}
 }
+
+/* the page reaches the very bottom of a phone, under Safari's floating bar: the foot runs on under it in its own light, and what shows past the page end is the foot's colour */
+.footer{padding-bottom:calc(var(--row)*.5 + env(safe-area-inset-bottom))}
+@media(max-width:820px){.footer{padding-bottom:calc(var(--row)*.4 + env(safe-area-inset-bottom) + 24px)}}
+html{background:#1a0c0c}
