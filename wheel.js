@@ -16,9 +16,9 @@
   let R = 800, cw = 360, ch = 470, rot = calm ? 0 : 42, vel = 0, target = 0, mode = 'spring', active = -1, running = false, visible = false, last = 0;
   function measure() {
     const W = wheel.clientWidth, phone = W < 820, row = parseFloat(getComputedStyle(document.querySelector('body>i')).width) || 100;
-    R = phone ? W * 1.78 : Math.min(1180, Math.max(560, W * .6)); cw = 2 * R * Math.sin(Math.PI / N) * .88; ch = cw * 1.3;
+    R = phone ? W * 1.5 : Math.min(1180, Math.max(560, W * .6)); cw = 2 * R * Math.sin(Math.PI / N) * .88; ch = cw * 1.3;
     const room = wheel.clientHeight || 480; if (ch > room * .9) { ch = room * .9; cw = ch / 1.3; R = cw / (2 * Math.sin(Math.PI / N) * .88) }   // the whole wheel fits in its screen
-    const pad = Math.max(6, (room - ch) * .3), h = room;
+    const pad = Math.max(6, (room - ch) * (phone ? .5 : .3)), h = room;
     wheel.style.setProperty('--cw', cw.toFixed(1) + 'px'); wheel.style.setProperty('--chh', ch.toFixed(1) + 'px'); wheel.style.setProperty('--cy0', (pad + ch / 2 + R).toFixed(1) + 'px'); 
     for (const m of marks) { m.style.height = (ch * .3).toFixed(1) + 'px'; m.style.marginTop = (-ch * .15).toFixed(1) + 'px' }
     draw();
