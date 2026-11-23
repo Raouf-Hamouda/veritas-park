@@ -962,3 +962,9 @@ html.at-end{background:transparent!important}html.at-end body.v{background:color
 /* the wheel: the pictures beside the chosen one are darkened by a veil (a filter redrew each picture at every step of a turn, heavy for a phone) */
 .wheel .card::before{content:"";position:absolute;inset:0;z-index:2;background:#000;opacity:var(--dim,0);pointer-events:none}
 .fs-l.out em{transform:translateX(30%)}
+
+/* ================= ROUND 17 (23 Nov, afternoon) ================= */
+/* the menu bar is solid on a computer too (it was see-through: titles passing under it showed through the words of the menu), and at the foot of the page it takes the ground of the foot */
+.scrolled .head::before{background:rgba(255,255,255,.97)}.scrolled .head.on-dark::before{background:rgba(0,0,0,.86)}
+.scrolled.at-end .head.on-dark::before{background:color-mix(in srgb,var(--h-dark) 24%,#000)}
+.nav-open .head::before{opacity:0}

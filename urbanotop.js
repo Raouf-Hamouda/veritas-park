@@ -56,7 +56,7 @@
     const canvas = stage.querySelector('canvas'), old = stage.parentNode.querySelector('.zones'); if (old) old.remove();
     let renderer; try { renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true }) } catch (e) { stage.classList.add('flat'); stage.innerHTML = '<img src="img/urbanotop_map.jpg" alt="The six quarters of VERITAS">'; return }
     const lite = matchMedia('(pointer:coarse)').matches || innerWidth < 820;   // a phone or a tablet: a lighter model
-    renderer.setPixelRatio(lite ? 1 : Math.min(devicePixelRatio || 1, 1.25)); const DPR_MOVE = lite ? 1 : Math.min(devicePixelRatio || 1, 1.25), DPR_REST = Math.min(devicePixelRatio || 1, lite ? 2.5 : 2); let dprNow = DPR_MOVE, touched = 0; renderer.shadowMap.enabled = !lite; renderer.shadowMap.type = T.PCFShadowMap; renderer.shadowMap.autoUpdate = false;
+    renderer.setPixelRatio(lite ? 1 : Math.min(devicePixelRatio || 1, 1.25)); let DPR_MOVE = lite ? 1 : Math.min(devicePixelRatio || 1, 1.25), DPR_REST = Math.min(devicePixelRatio || 1, lite ? 2.5 : 2), dprNow = DPR_MOVE, touched = 0; renderer.shadowMap.enabled = !lite; renderer.shadowMap.type = T.PCFShadowMap; renderer.shadowMap.autoUpdate = false;
     const scene = new T.Scene(), cam = new T.OrthographicCamera(-1, 1, 1, -1, 900, 3600);
     const amb = new T.AmbientLight(0xffffff, .4), sun = new T.DirectionalLight(0xffffff, .8), fill = new T.DirectionalLight(0xffffff, .2); sun.castShadow = !lite;
     Object.assign(sun.shadow.camera, { left: -640, right: 640, top: 640, bottom: -640, near: 300, far: 2200 }); sun.shadow.camera.updateProjectionMatrix(); sun.shadow.mapSize.set(lite ? 1024 : 2048, lite ? 1024 : 2048); sun.shadow.bias = -.0007; sun.shadow.normalBias = .6;
@@ -309,8 +309,16 @@
     /* ---------- the frame: the arrival, the flights, the fading of the quarters not chosen, building 13 opening, the water, the tags */
     const calm = matchMedia('(prefers-reduced-motion:reduce)').matches; let lastDraw = 0, shadowTick = 0, keepShadow = false, visible = false, openNow = 0, lastT = 0, skip = false, towerRise = -1, townRise = -1, lastSec = -1;
     const order = ['harbour', 'park', 'industrial', 'creative', 'culture', 'factory'];
+    /* ---------- a model for every machine. The model watches how long its own pictures take while it moves. Under 25 a second it lightens itself, once and for good:
+       grade 1: no shadows, a coarser picture while moving. Grade 2 (a machine with no graphics card, about 3 pictures a second): no trees, a coarse picture, and nothing moves by itself any more
+       (no water, no sway), so the page around the model stays free. A machine known to draw without a graphics card starts at grade 2. */
+    let grade = 0, still = false, slowN = 0, slowAvg = 0, drewLast = false;
+    const soft = (() => { try { const g = renderer.getContext(), e = g.getExtension('WEBGL_debug_renderer_info'); return /swiftshader|llvmpipe|software|basic render/i.test(e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : '') } catch (x) { return false } })();
+    const lighten = g => { if (g <= grade) return; grade = g; slowN = slowAvg = 0; DPR_MOVE = Math.min(DPR_MOVE, g > 1 ? .5 : .8); DPR_REST = Math.min(DPR_REST, g > 1 ? .75 : 1);
+      if (renderer.shadowMap.enabled) { renderer.shadowMap.enabled = false; sun.castShadow = false; scene.traverse(o => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true }) }
+      if (g > 1) { still = true; wood.visible = false } dprNow = -1; dirty = true; stage.dataset.grade = g };
     function size() { W = stage.clientWidth; H = stage.clientHeight; if (!W || !H) return; renderer.setSize(W, H, false); base = W / H > 1.25 ? 640 : 420; inset() }
-    function frame(now) { if (!visible) return; requestAnimationFrame(frame); const dt = Math.min(50, now - lastT); lastT = now; let moving = false;
+    function frame(now) { if (!visible) return; requestAnimationFrame(frame); const raw = now - lastT, dt = Math.min(50, raw); lastT = now; let moving = false;
       if (!born) born = now; const age = (now - born) / 1000;   // the arrival: the town, then quarter after quarter, the tower last
       const wr = calm ? 1 : out(clamp(age / .9, 0, 1)); if (wr !== townRise) { townRise = wr; town.scale.y = wood.scale.y = Math.max(.0001, wr); moving = shadowDirty = true }
       order.forEach((id, i) => { const z = zones[id], r = calm ? 1 : out(clamp((age - .5 - i * .2) / .9, 0, 1)); if (r !== z.rise) { z.rise = r; z.group.scale.y = Math.max(.0001, r); moving = shadowDirty = true } });
@@ -320,10 +328,12 @@
       for (const k in zones) { const z = zones[k]; if (Math.abs(z.to - z.k) > .003) { z.k += (z.to - z.k) * Math.min(1, dt * .009); moving = true; for (const m of z.mats) { m.color.copy(m.userData.base).lerp(m.userData.pale, z.k * .9); if (m.userData.wash) m.emissive.copy(m.userData.pale).multiplyScalar(z.k * .6) } } }
       if (Math.abs(open13 - openNow) > .002) { openNow += (open13 - openNow) * Math.min(1, dt * .006); moving = shadowDirty = true; floors.forEach((g, i) => g.position.y = openNow * i * 7.5) }
       const sec = Math.floor(Date.now() / 1000); if (sec !== lastSec && level === 2) { lastSec = sec; drawFace() }   // near the tower its thin hand ticks
-      const idle = !chosen && !drag && !fly && !calm && !plan, sway = idle ? Math.sin((now - swayAt) / 5200) * .05 : 0; if (!lite && now - lastDraw > 50 && !document.hidden) moving = true;   // the water: 20 pictures a second
+      const idle = !chosen && !drag && !fly && !calm && !plan && !still, sway = idle ? Math.sin((now - swayAt) / 5200) * .05 : 0; if (!lite && !still && now - lastDraw > 50 && !document.hidden) moving = true;   // the water: 20 pictures a second
       for (const f of api.hooks) f(now);
       const dpr = fly || drag || pinch || now - touched < 260 || age < 3.6 ? DPR_MOVE : DPR_REST; if (dpr !== dprNow) { dprNow = dpr; renderer.setPixelRatio(dpr); renderer.setSize(W, H, false); dirty = true }   // moving: a light picture; still: one drawn at the true density of the screen
-      if (!moving && !dirty) return; dirty = false; lastDraw = now; if (shadowDirty && age < 3.4 && (shadowTick = (shadowTick + 1) % 5)) shadowDirty = false, keepShadow = true; else if (keepShadow && age >= 3.4) shadowDirty = true, keepShadow = false;
+      if (!moving && !dirty) { drewLast = false; return }
+      if (drewLast && grade < 2 && age > 4 && raw < 1500 && !document.hidden) { slowAvg += (raw - slowAvg) * (slowN < 6 ? 1 / (slowN + 1) : .2); if (++slowN >= 8 && slowAvg > 40) lighten(slowAvg > 110 ? 2 : grade + 1) }   // two pictures in a row: the time between them is the time one picture takes
+      drewLast = true; dirty = false; lastDraw = now; if (shadowDirty && age < 3.4 && (shadowTick = (shadowTick + 1) % 5)) shadowDirty = false, keepShadow = true; else if (keepShadow && age >= 3.4) shadowDirty = true, keepShadow = false;
       const a = view.az + sway, D = 2200; const lift = shift * 2 * base / (W * view.zoom); cam.left = -base; cam.right = base; cam.top = base * H / W - lift; cam.bottom = -base * H / W - lift; cam.zoom = view.zoom; cam.updateProjectionMatrix();
       cam.position.set(view.x + Math.sin(a) * Math.cos(view.el) * D, view.y + Math.sin(view.el) * D, view.z + Math.cos(a) * Math.cos(view.el) * D); cam.lookAt(view.x, view.y, view.z); cam.updateMatrixWorld();
       if (shadowDirty) { renderer.shadowMap.needsUpdate = true; shadowDirty = false } renderer.render(scene, cam);
@@ -335,7 +345,7 @@
     // the detail modules: railway and train, roof walls and gates, kerbs and lamps, people, cars and boats
     Object.assign(api, { T, scene, MAP, R, UP, HUE, zones, zoneAt, info, town, mix, mat, pairs, inside, area, centroid, greens, waters, wood, flat, lay, shapeOf, b13, roof13: floors[floors.length - 1], lite, mark: () => { dirty = shadowDirty = true } });
     for (const f of window.VERITAS_DETAIL || []) { try { f(api) } catch (e) { console.error(e) } }
-    shadowDirty = true; stage.urbanotop = { choose, flyTo, view, daylight, api };   // for the checks
+    shadowDirty = true; if (soft) lighten(2); stage.urbanotop = { choose, flyTo, view, daylight, api, quality: () => grade, lighten };   // for the checks
   }
   const go = () => { if (!T || !MAP) return; document.querySelectorAll('[data-urbanotop]').forEach(s => { const io = new IntersectionObserver(es => { if (!es.some(e => e.isIntersecting)) return; io.disconnect(); const t0 = performance.now(); try { mount(s) } catch (e) { console.error(e) } s.dataset.built = Math.round(performance.now() - t0) }, { rootMargin: '130% 0px' }); io.observe(s) }) };   // the model is built only when its place comes near the screen
   document.readyState === 'loading' ? addEventListener('DOMContentLoaded', go) : go();
