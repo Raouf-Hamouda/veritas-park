@@ -977,3 +977,7 @@ html.at-end{background:transparent!important}html.at-end body.v{background:color
 .dial .hit{outline:none;-webkit-tap-highlight-color:transparent}.dial .hit:focus-visible{fill:rgba(255,255,255,.16)}
 /* over a pale part of a picture the ticks stay readable: a little more ink, and a soft shade behind them (as under the words) */
 .dial svg{filter:drop-shadow(0 0 9px rgba(0,0,0,.5))}.dial .tk{opacity:.5}.dial .tk.past{opacity:.74}.dial .tk.now{opacity:1}
+
+/* a picture open to the full screen: the menu bar steps aside (its MENU word sat under the close button on a phone) */
+body>header,.nav,.bar{transition:opacity .35s}
+body.lb-open>header,body.lb-open .nav,body.lb-open .bar{opacity:0;pointer-events:none}

@@ -72,11 +72,12 @@
     const s0 = Math.max(r.width / tw, r.height / th), ox = r.left + r.width / 2 - tw * s0 / 2, oy = r.top + r.height / 2 - th * s0 / 2, ix = (tw * s0 - r.width) / 2 / s0, iy = (th * s0 - r.height) / 2 / s0;
     const from = { transform: `translate(${ox}px,${oy}px) scale(${s0})`, clipPath: `inset(${iy}px ${ix}px)` }, to = { transform: `translate(${tx}px,${ty}px) scale(1)`, clipPath: 'inset(0px 0px)' };
     const box = D.createElement('figure'); box.className = 'lb'; box.innerHTML = `<img alt=""><figcaption><b></b><span></span></figcaption><button class="round" aria-label="Close"><svg class="ico" viewBox="0 0 100 100"><path d="M12.5 12.5L87.5 87.5"/><path d="M87.5 12.5L12.5 87.5"/></svg></button>`;
-    const big = box.firstChild; big.src = (innerWidth * (devicePixelRatio || 1) > 1300 && img.getAttribute('src')) || img.currentSrc || img.src;   // on a large screen the full-screen picture is the large file, even if the small one was enough in the page big.style.width = tw + 'px'; big.style.height = th + 'px'; big.style.transition = 'none'; Object.assign(big.style, from);
-    box.querySelector('b').textContent = title; box.querySelector('span').textContent = line; body.append(box); img.style.visibility = 'hidden';
+    const big = box.firstChild; big.src = (innerWidth * (devicePixelRatio || 1) > 1300 && img.getAttribute('src')) || img.currentSrc || img.src;   // on a large screen the full-screen picture is the large file
+    big.style.width = tw + 'px'; big.style.height = th + 'px'; big.style.transition = 'none'; Object.assign(big.style, from);
+    box.querySelector('b').textContent = title; box.querySelector('span').textContent = line; body.append(box); body.classList.add('lb-open'); img.style.visibility = 'hidden';
     const spring = 'transform .7s cubic-bezier(.19,1,.22,1),clip-path .7s cubic-bezier(.19,1,.22,1)';
     requestAnimationFrame(() => requestAnimationFrame(() => { big.style.transition = calm ? 'none' : spring; Object.assign(big.style, to); box.classList.add('on') }));
-    let shut = false; const close = () => { if (shut) return; shut = true; removeEventListener('keydown', key); box.classList.remove('on'); Object.assign(big.style, from); setTimeout(() => { img.style.visibility = ''; box.remove() }, calm ? 0 : 700) };
+    let shut = false; const close = () => { if (shut) return; shut = true; removeEventListener('keydown', key); box.classList.remove('on'); body.classList.remove('lb-open'); Object.assign(big.style, from); setTimeout(() => { img.style.visibility = ''; box.remove() }, calm ? 0 : 700) };
     const key = e => { if (e.key === 'Escape') close() }; addEventListener('keydown', key); box.addEventListener('click', close); addEventListener('scroll', close, { once: true, passive: true });
   };
   $$('.mosaic button').forEach(b => b.addEventListener('click', () => window.veritasOpen(b.querySelector('img'))));
