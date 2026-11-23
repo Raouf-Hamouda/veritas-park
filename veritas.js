@@ -153,3 +153,12 @@
   const half = () => { if (scrollY > (D.documentElement.scrollHeight - innerHeight) * .5) show() };
   addEventListener('scroll', half, { passive: true }); setTimeout(show, ask ? 600 : 25000);
 })();
+
+/* the language switch is a small clock: the twelve ticks of the logo between EN and DE, one hand that swings to the language chosen. A click on the dial changes language. */
+(() => {
+  const ticks = Array.from({ length: 12 }, (_, i) => `<path d="M50 ${i % 3 ? 9 : 6}V${i % 3 ? 17 : 20}" transform="rotate(${i * 30} 50 50)"/>`).join('');
+  document.querySelectorAll('.lang').forEach(l => { const [en, de] = l.querySelectorAll('[data-lang]'); if (!en || !de || l.querySelector('.lang-dial')) return;
+    const d = document.createElement('button'); d.type = 'button'; d.className = 'lang-dial'; d.setAttribute('aria-label', 'EN / DE');
+    d.innerHTML = `<svg viewBox="0 0 100 100" aria-hidden="true">${ticks}<path class="hand" d="M50 50V22"/><circle cx="50" cy="50" r="4.5"/></svg>`;
+    d.addEventListener('click', () => (document.documentElement.lang === 'de' ? en : de).click()); en.after(d) });
+})();
