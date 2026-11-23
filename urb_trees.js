@@ -15,7 +15,7 @@
     return L(L(L(hash(xi, yi, zi), hash(xi + 1, yi, zi), u), L(hash(xi, yi + 1, zi), hash(xi + 1, yi + 1, zi), u), v), L(L(hash(xi, yi, zi + 1), hash(xi + 1, yi, zi + 1), u), L(hash(xi, yi + 1, zi + 1), hash(xi + 1, yi + 1, zi + 1), u), v), w) };
   const at = (x, y, z, sx, sy, sz, ry = 0, rz = 0) => new T.Matrix4().compose(new T.Vector3(x, y, z), new T.Quaternion().setFromEuler(new T.Euler(0, ry, rz, 'YZX')), new T.Vector3(sx, sy, sz));
   // several parts become one shape
-  const merge = parts => { const pos = [], nor = [], col = [];
+  const merge = parts => { if (api.lite) parts = parts.slice(0, 3); const pos = [], nor = [], col = [];   // on a phone a crown is three masses, not seven
     for (const { geo, m, shade = 1 } of parts) { const g = geo.index ? geo.toNonIndexed() : geo.clone(); g.applyMatrix4(m); const P = g.attributes.position, N = g.attributes.normal, C = g.attributes.color;
       for (let i = 0; i < P.count; i++) { pos.push(P.getX(i), P.getY(i), P.getZ(i)); nor.push(N.getX(i), N.getY(i), N.getZ(i)); const c = C ? C.getX(i) : 1; col.push(c * shade, c * shade, c * shade) } }
     const out = new T.BufferGeometry(); out.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); out.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); out.setAttribute('color', new T.Float32BufferAttribute(col, 3)); return out };
@@ -53,7 +53,7 @@
   const any = () => { const k = rnd(); return k < .13 ? 'fir' : k < .3 ? 'column' : 'broad' };
   for (const [x, y] of pairs(MAP.trees)) if (free(x, y, 3)) plant('broad', x, y, 1.1);
   for (const row of MAP.rows) { const shape = Math.floor(rnd() * 3); for (const line of api.clip(pairs(row))) api.along(line, 9.5, (x, y) => { if (free(x, y, 4)) plant('broad', x, y, .82 + rnd() * .1, shape) }, 2) }
-  const scatter = (p, per1000, kind, tall = 1, gap = 6.5) => { const xs = p.map(q => q[0]), ys = p.map(q => q[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), want = Math.min(220, Math.abs(area(p)) / 1000 * per1000) * (api.lite ? .5 : 1); let made = 0, tries = 0;
+  const scatter = (p, per1000, kind, tall = 1, gap = 6.5) => { const xs = p.map(q => q[0]), ys = p.map(q => q[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), want = Math.min(220, Math.abs(area(p)) / 1000 * per1000) * (api.lite ? .35 : 1); let made = 0, tries = 0;
     while (made < want && tries++ < want * 28) { const x = x0 + rnd() * (x1 - x0), y = y0 + rnd() * (y1 - y0); if (!inside(x, y, p) || !free(x, y, gap)) continue; plant(kind || any(), x, y, tall); made++ } };
   for (const g of api.greens) { if (g.k === 'scrub') { scatter(g.p, 2.4, 'bush', 1, 5); scatter(g.p, 1, null, .8) } else if (g.k === 'allotments') scatter(g.p, 1.2, 'bush', .8, 5); else scatter(g.p, { wood: 5.2, park: 1.8, meadow: .25, grass: .5 }[g.k] || 0, null, g.k === 'wood' ? 1.1 : 1, g.k === 'wood' ? 5.5 : 7.5) }
   for (const [id, n] of [['park', 2.1], ['harbour', 1.2], ['creative', .55], ['industrial', .22], ['culture', .32], ['factory', .2]]) scatter(zones[id].poly, n, null, 1, 8);

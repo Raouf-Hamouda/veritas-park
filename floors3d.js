@@ -9,6 +9,7 @@
   const T = window.THREE, view = document.querySelector('.stack .view'); if (!T || !view) return;
   const files = view.dataset.floors.split(','), list = view.parentNode.querySelector('.floors'), btns = [...list.querySelectorAll('button')], canvas = view.querySelector('canvas'), N = files.length;
   const mark = i => btns.forEach((b, k) => b.setAttribute('aria-selected', k === i));
+  if (matchMedia('(pointer:coarse)').matches) return phone();
   let renderer; try { renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true }) }
   catch (e) { const im = document.createElement('img'); im.className = 'flat'; view.append(im); canvas.remove(); const pick = i => { im.src = files[i]; mark(i) }; btns.forEach((b, i) => b.addEventListener('click', () => pick(i))); pick(7); return }
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
@@ -125,4 +126,42 @@
   new IntersectionObserver(es => { const was = visible; visible = es[0].isIntersecting; if (visible && !was) { dirty = true; requestAnimationFrame(frame) } }).observe(view);
   // a floor chosen on the 3D model of the site arrives here by its link (rent.html#floor-3)
   const fromLink = () => { const m = /^#floor-(\d)$/.exec(location.hash); if (m) { show(+m[1]); setTimeout(() => document.getElementById('plans').scrollIntoView({ behavior: 'smooth' }), 400) } }; fromLink(); addEventListener('hashchange', fromLink);
+
+  /* On a phone or a tablet there is no 3D engine here: it was heavy and could not be handled with fingers.
+     The stack is nine light pictures of the sheets, laid as layers. A touch on a layer, or on its name, opens the drawing on the whole screen.
+     There: one finger moves it, two fingers zoom, a double tap comes close or steps back, and two tiles zoom for those who do not pinch. */
+  function phone() {
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), ico = d => `<svg class="ico" viewBox="0 0 100 100" aria-hidden="true">${d.map(p => `<path d="${p}"/>`).join('')}</svg>`;
+    canvas.remove(); const wrap = document.createElement('div'); wrap.className = 'fs';
+    wrap.innerHTML = files.map((f, i) => `<button type="button" class="fs-l" style="--t:${i};z-index:${N - i}" data-i="${i}"><span><img src="${f.replace(/floor_(\d)\.svg$/, 'thumb_$1.png')}" alt="" decoding="async"></span><b>${btns[i].querySelector('i').textContent}</b></button>`).join(''); view.append(wrap);
+    const sheet = document.createElement('div'); sheet.className = 'fl-sheet full'; sheet.hidden = true;
+    sheet.innerHTML = `<img alt="" draggable="false"><div class="fl-bar"><b></b><span><button type="button" class="round" data-z="-1" aria-label="Further">${ico(['M10 50H90'])}</button><button type="button" class="round" data-z="1" aria-label="Closer">${ico(['M50 10V90', 'M10 50H90'])}</button><button type="button" class="round" data-z="0" aria-label="Close">${ico(['M15 15L85 85', 'M85 15L15 85'])}</button></span></div>`;
+    document.body.append(sheet); const pic = sheet.firstChild, title = sheet.querySelector('.fl-bar b'), ZMAX = 8, pts = new Map();
+    let sz = 1, drawn = 1, sxo = 0, syo = 0, baseW = 0, sharpT = 0, grab = null, two = null, lastTap = 0;
+    const place = () => { pic.style.transform = `translate(${sxo.toFixed(1)}px,${syo.toFixed(1)}px) scale(${(sz / drawn).toFixed(4)})` };
+    // while the fingers move, the drawing is only stretched (light); once they rest it is drawn again at its true size, so its lines are fine
+    const sharp = () => { if (!baseW) baseW = pic.offsetWidth / drawn; if (!baseW || drawn === sz) return; drawn = sz; pic.style.maxWidth = pic.style.maxHeight = 'none'; pic.style.width = (baseW * sz).toFixed(1) + 'px'; place() };
+    const setPic = () => { place(); clearTimeout(sharpT); sharpT = setTimeout(sharp, 240) };
+    const reset = () => { clearTimeout(sharpT); sz = drawn = 1; sxo = syo = 0; baseW = 0; pic.style.width = pic.style.maxWidth = pic.style.maxHeight = ''; pic.style.transform = '' };
+    const mid = (x, y) => { const r = sheet.getBoundingClientRect(); return [x - r.left - r.width / 2, y - r.top - r.height / 2] };
+    const zoomAt = (z1, mx, my) => { z1 = clamp(z1, 1, ZMAX); const k = z1 / sz; sxo = mx - (mx - sxo) * k; syo = my - (my - syo) * k; sz = z1; if (sz === 1) sxo = syo = 0; setPic() };
+    const open = i => { mark(i); title.textContent = btns[i].querySelector('span').textContent.trim(); reset(); pic.src = files[i]; sheet.hidden = false; requestAnimationFrame(() => sheet.classList.add('on')) };
+    const close = () => { mark(-1); sheet.classList.remove('on'); sheet.hidden = true; pts.clear(); grab = two = null };
+    sheet.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; pts.set(e.pointerId, e); try { sheet.setPointerCapture(e.pointerId) } catch (x) {}
+      if (pts.size === 2) { const [p, q] = [...pts.values()]; two = { d: Math.hypot(p.clientX - q.clientX, p.clientY - q.clientY) || 1, sz, sxo, syo, m: mid((p.clientX + q.clientX) / 2, (p.clientY + q.clientY) / 2) }; grab = null }
+      else grab = { x: e.clientX, y: e.clientY, ox: sxo, oy: syo, moved: 0 } });
+    sheet.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, e);
+      if (two && pts.size === 2) { const [p, q] = [...pts.values()], m = mid((p.clientX + q.clientX) / 2, (p.clientY + q.clientY) / 2), z1 = clamp(two.sz * Math.hypot(p.clientX - q.clientX, p.clientY - q.clientY) / two.d, 1, ZMAX), k = z1 / two.sz;
+        sxo = m[0] - (two.m[0] - two.sxo) * k; syo = m[1] - (two.m[1] - two.syo) * k; sz = z1; setPic(); return }
+      if (grab) { const dx = e.clientX - grab.x, dy = e.clientY - grab.y; grab.moved = Math.max(grab.moved, Math.hypot(dx, dy)); if (sz > 1) { sxo = grab.ox + dx; syo = grab.oy + dy; setPic() } } });
+    const lift = e => { const g = grab; pts.delete(e.pointerId); two = grab = null;
+      if (pts.size === 1) { const p = [...pts.values()][0]; grab = { x: p.clientX, y: p.clientY, ox: sxo, oy: syo, moved: 99 } }
+      else if (g && g.moved < 9 && e.type === 'pointerup') { const now = performance.now(); if (now - lastTap < 340) { lastTap = 0; sz > 1.05 ? zoomAt(1, 0, 0) : zoomAt(3, ...mid(e.clientX, e.clientY)) } else lastTap = now } };
+    sheet.addEventListener('pointerup', lift); sheet.addEventListener('pointercancel', lift);
+    sheet.addEventListener('touchmove', e => e.preventDefault(), { passive: false }); sheet.addEventListener('gesturestart', e => e.preventDefault());
+    sheet.querySelector('.fl-bar').addEventListener('click', e => { const b = e.target.closest('[data-z]'); if (!b) return; const z = +b.dataset.z; z ? zoomAt(sz * (z > 0 ? 1.8 : 1 / 1.8), 0, 0) : close() });
+    wrap.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) open(+b.dataset.i) });
+    btns.forEach((b, i) => b.addEventListener('click', () => open(i)));
+    const m = /^#floor-(\d)$/.exec(location.hash); if (m) open(+m[1]); mark(-1);
+  }
 })();

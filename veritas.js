@@ -36,7 +36,7 @@
     if (arc && !calm) { const r = arc.getBoundingClientRect(), p = (innerHeight - r.top) / (innerHeight + r.height); if (p > -.2 && p < 1.2) arc.style.setProperty('--turn', ((.5 - p) * 26).toFixed(2) + 'deg') }
     if (!calm) for (const b of bleeds) { const r = b.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) b.style.setProperty('--par', ((innerHeight - r.top) / (innerHeight + r.height)).toFixed(3)) }
     if (body.classList.contains('grid')) body.style.setProperty('--gy', -(scrollY % row) + 'px') }) };
-  addEventListener('scroll', scroll, { passive: true }); addEventListener('resize', () => { snap(); scroll() });
+  addEventListener('scroll', scroll, { passive: true }); let wide = innerWidth; addEventListener('resize', () => { if (innerWidth !== wide) { wide = innerWidth; snap() } scroll() });   // the rows change only when the width does (a phone resizes at every slide of its browser bar)
   snap(); scroll(); (D.fonts ? D.fonts.ready : Promise.resolve()).then(() => { snap(); scroll() }); addEventListener('load', () => { snap(); scroll() });
 
   // things arrive once; icons draw themselves line after line

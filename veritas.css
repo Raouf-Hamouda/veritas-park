@@ -835,10 +835,6 @@ body.v{--lift:0px}
   .urb-card h3{font-size:20px;margin:.2em 0 .35em}.urb-card .urb-text{font-size:14px}
   .urb:has(.urb-card:not([hidden])) .urb-zoom{bottom:auto;top:230px}
   /* an opened floor plan fills the screen */
-  .fl-sheet.full{position:fixed;inset:0;z-index:300;touch-action:none;transition:opacity .25s}
-  .fl-sheet.full img{max-width:calc(100% - 24px);max-height:72%}
-  .fl-sheet.full .fl-bar{display:flex;position:absolute;inset:0 0 auto;z-index:2;justify-content:space-between;align-items:center;gap:16px;padding:12px 16px;background:#fff;border-bottom:1px solid var(--line)}
-  .fl-bar b{font:400 16px/1.25 var(--head);letter-spacing:.04em}.fl-bar .round{flex:none;width:44px;height:44px}
   .stack .view{touch-action:pan-y}
 }
 /* an iPhone lays its own bar over the foot of the page: the words of the openings keep clear of it */
@@ -852,3 +848,16 @@ body.v{--lift:0px}
 .gate .tile svg{width:100%;height:auto;overflow:visible}.gate .tile svg rect{fill:#fff}
 /* the arrival has no box at all: the square element itself is gone from the pages. Only the black ground and the symbol. */
 .gate>svg{display:block;width:clamp(92px,9.5vw,148px);height:auto;overflow:visible}.gate>svg rect{fill:#fff}
+
+
+/* ================= ROUND 13 (23 Nov): floor plans on a phone or a tablet, without the 3D engine ================= */
+.fl-sheet.full{position:fixed;inset:0;z-index:300;touch-action:none;transition:opacity .2s;cursor:default}
+.fl-sheet.full img{max-width:calc(100% - 24px);max-height:70%}
+.fl-sheet.full .fl-bar{display:flex;position:absolute;inset:0 0 auto;z-index:2;justify-content:space-between;align-items:center;gap:14px;padding:10px 14px;background:#fff;border-bottom:1px solid #d9d6d0;color:#000}
+.fl-bar b{font:400 15px/1.25 "V Head",serif;letter-spacing:.04em;color:#000}.fl-bar span{display:flex;flex:none}.fl-bar .round{flex:none;width:44px;height:44px;color:#000;background:#fff}
+.fs{position:absolute;inset:0}
+.fs-l{all:unset;position:absolute;left:0;right:0;top:calc(var(--t)*(100% - 200px)/8);height:200px;pointer-events:none;-webkit-tap-highlight-color:transparent}
+.fs-l span{position:absolute;left:15%;top:50%;width:74%;aspect-ratio:1.85;margin-top:-20%;transform:rotateX(58deg) rotateZ(-30deg);background:#fff;outline:1px solid rgba(27,26,23,.5);box-shadow:-16px 20px 22px -8px rgba(0,0,0,.2);pointer-events:auto;cursor:pointer;transition:transform .25s cubic-bezier(.19,1,.22,1)}
+.fs-l:active span{transform:translateX(18px) rotateX(58deg) rotateZ(-30deg)}
+.fs-l img{display:block;width:100%;height:100%;object-fit:contain}
+.fs-l b{position:absolute;left:2px;top:50%;font:600 13px/1 var(--text);color:#000;pointer-events:auto}
