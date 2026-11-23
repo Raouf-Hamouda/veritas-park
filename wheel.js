@@ -43,16 +43,33 @@
   const settle = (extra = 0) => { target = Math.round((rot + extra) / STEP) * STEP; mode = 'spring'; run() };
   const turn = steps => { target = Math.round(target / STEP) * STEP - steps * STEP; mode = 'spring'; run() };
 
-  // the hand on the wheel
+  // the hand on the wheel. A mouse grabs it at once. A finger first says what it wants, and the wheel reads it itself instead of leaving the choice to the phone
+  // (a phone starts to scroll at the least slant, and the turn was lost): across, even clearly slanted, turns the wheel and the page holds still;
+  // up or down scrolls the page and the wheel holds still; a finger that does not move chooses a picture. A touch the phone takes back chooses nothing.
   let drag = null;
-  wheel.addEventListener('pointerdown', e => { if (e.button) return; drag = { x: e.clientX, rot, moved: 0, trail: [[e.timeStamp, e.clientX]], card: e.target.closest('.card') }; mode = 'drag'; vel = 0 });
-  addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x; drag.moved = Math.max(drag.moved, Math.abs(dx)); if (drag.moved > 5) { wheel.classList.add('drag'); wheel.setPointerCapture?.(e.pointerId) }
-    rot = drag.rot + dx / R * 180 / Math.PI; drag.trail.push([e.timeStamp, e.clientX]); if (drag.trail.length > 6) drag.trail.shift(); running ? 0 : draw() });
-  const drop = e => { if (!drag) return; const d = drag; drag = null; wheel.classList.remove('drag');
-    if (d.moved <= 5) { mode = 'spring'; if (d.card) { const i = cards.indexOf(d.card), a = norm(i * STEP + rot); if (Math.abs(a) < 1 && i === active) open(i); else { target = rot - a; run() } } else settle(); return }
+  const begin = (x, y, t, el, touch) => { drag = { x, y, rot, moved: 0, turning: !touch, touch, t0: t, trail: [[t, x]], card: el.closest('.card') }; mode = 'drag'; vel = 0 };
+  const move = (x, y, t) => { const dx = x - drag.x; drag.moved = Math.max(drag.moved, Math.hypot(dx, y - drag.y)); if (drag.moved > 5) wheel.classList.add('drag');
+    rot = drag.rot + dx / R * 180 / Math.PI; drag.trail.push([t, x]); if (drag.trail.length > 6) drag.trail.shift(); running ? 0 : draw() };
+  const end = tap => { const d = drag; drag = null; wheel.classList.remove('drag'); if (!d) return;
+    if (tap) { mode = 'spring'; if (d.card) { const i = cards.indexOf(d.card), a = norm(i * STEP + rot); if (Math.abs(a) < 1 && i === active) open(i); else { target = rot - a; run() } } else settle(); return }
+    if (!d.turning) return settle();   // the page scrolled: the wheel rests on its hour
     const [t0, x0] = d.trail[0], [t1, x1] = d.trail[d.trail.length - 1], v = t1 > t0 ? (x1 - x0) / (t1 - t0) : 0;   // pixels per millisecond
     vel = v * 1000 / R * 180 / Math.PI; settle(vel * .23) };
+  // a mouse
+  wheel.addEventListener('pointerdown', e => { if (e.button || e.pointerType === 'touch') return; begin(e.clientX, e.clientY, e.timeStamp, e.target, false) });
+  addEventListener('pointermove', e => { if (!drag || drag.touch || e.pointerType === 'touch') return; move(e.clientX, e.clientY, e.timeStamp); if (drag.moved > 5) { try { wheel.setPointerCapture(e.pointerId) } catch (x) {} } });
+  const drop = e => { if (drag && !drag.touch && e.pointerType !== 'touch') end(e.type === 'pointerup' && drag.moved <= 5) };
   addEventListener('pointerup', drop); addEventListener('pointercancel', drop);
+  // a finger
+  const SLANT = .8;   // across wins as long as the finger goes less than 1.25 times as far up or down as across (about 51 degrees)
+  wheel.addEventListener('touchstart', e => { if (e.touches.length > 1) { if (drag && drag.touch) end(false); return } const p = e.touches[0]; begin(p.clientX, p.clientY, e.timeStamp, e.target, true); drag.id = p.identifier }, { passive: true });
+  wheel.addEventListener('touchmove', e => { if (!drag || !drag.touch) return; const p = [...e.touches].find(q => q.identifier === drag.id); if (!p) return;
+    if (!drag.turning) { const dx = Math.abs(p.clientX - drag.x), dy = Math.abs(p.clientY - drag.y); if (dx + dy < 4) return;
+      if (dx < dy * SLANT) return end(false);
+      drag.turning = true; drag.x = p.clientX; drag.y = p.clientY; drag.moved = 6; drag.trail = [[e.timeStamp, p.clientX]] }
+    if (e.cancelable) e.preventDefault(); move(p.clientX, p.clientY, e.timeStamp) }, { passive: false });
+  wheel.addEventListener('touchend', e => { if (!drag || !drag.touch) return; const tap = !drag.turning && e.timeStamp - drag.t0 < 700; if (tap && e.cancelable) e.preventDefault(); end(tap) });   // no second click after the tap: it used to close the picture it had just opened
+  wheel.addEventListener('touchcancel', () => { if (drag && drag.touch) end(false) });
   // two fingers sideways on a trackpad
   let idle = 0;
   wheel.addEventListener('wheel', e => { if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return; e.preventDefault(); mode = 'drag'; rot -= e.deltaX * .055; draw(); clearTimeout(idle); idle = setTimeout(() => settle(), 110) }, { passive: false });

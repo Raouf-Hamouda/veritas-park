@@ -16,7 +16,7 @@
 
   // the menu
   const btn = $('.menu-btn'), nav = $('.nav');
-  const menu = on => { root.classList.toggle('nav-open', on); btn.setAttribute('aria-expanded', on); btn.textContent = on ? 'Close' : 'Menu'; nav.toggleAttribute('inert', !on) };
+  const menu = on => { root.classList.toggle('nav-open', on); btn.setAttribute('aria-expanded', on); btn.textContent = on ? 'Close' : 'Menu'; nav.toggleAttribute('inert', !on); if (on) tint.content = '#000000'; else scroll() };   // the phone's own bar is dark while the menu is open, whatever the page under it
   btn && btn.addEventListener('click', () => menu(!root.classList.contains('nav-open')));
   nav && nav.addEventListener('touchmove', e => { if (nav.scrollHeight <= nav.clientHeight + 1) e.preventDefault() }, { passive: false });   // the page behind an open menu does not scroll
   addEventListener('keydown', e => { if (e.key === 'Escape') menu(false); if ((e.key === 'g' || e.key === 'G') && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) { body.classList.toggle('grid'); scroll() } });
