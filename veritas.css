@@ -875,7 +875,8 @@ html.at-end{background:transparent!important}html.at-end body.v{background:color
 /* "Every step forward starts with a vision": the block is the screen divided by the golden number, the sentence stands on its golden line and takes 61.8 % of the width */
 .call2.gold{min-height:max(420px,61.8vh);min-height:max(420px,61.8svh);grid-template-rows:61.8fr 38.2fr;padding-bottom:0}
 .call2.gold>div{grid-row:1;align-self:end;padding:0 var(--m)}.call2.gold h2{max-width:61.8%;color:#fff}
-.call2.gold::before{background:linear-gradient(90deg,rgba(0,0,0,.82) 0,rgba(0,0,0,.6) 45%,rgba(0,0,0,.2) 100%),linear-gradient(180deg,rgba(0,0,0,.5) 0,rgba(0,0,0,0) 30%),radial-gradient(70% 95% at 0 100%,color-mix(in srgb,var(--h-dark) 72%,transparent) 0,transparent 100%)}
+.call2.gold::before{background:linear-gradient(90deg,rgba(0,0,0,.6) 0,rgba(0,0,0,.36) 45%,rgba(0,0,0,.06) 100%),linear-gradient(180deg,rgba(0,0,0,.3) 0,rgba(0,0,0,0) 30%),radial-gradient(70% 95% at 0 100%,color-mix(in srgb,var(--h-dark) 48%,transparent) 0,transparent 100%)}
+.call2.gold h2{text-shadow:0 1px 26px rgba(0,0,0,.45)}
 
 /* the cycle of the About page: drawn line by line, then it keeps turning (the drawing: ../sources/cycle_svg.py) */
 .cycle-fig{margin:0 auto;width:86%;padding-top:clamp(44px,4.6vw,84px)}
@@ -920,7 +921,7 @@ html.at-end{background:transparent!important}html.at-end body.v{background:color
   /* at the foot of the page the strip of the header takes the ground of the foot: no black band above it */
   .scrolled.at-end .head.on-dark::before{background:color-mix(in srgb,var(--h-dark) 24%,#000)}
   /* "Every step forward": on a phone the sentence crosses the whole picture, so the veil is deep across the whole width, not only on the left */
-  .call2.gold::before{background:linear-gradient(90deg,rgba(0,0,0,.84) 0,rgba(0,0,0,.72) 55%,rgba(0,0,0,.56) 100%),linear-gradient(180deg,rgba(0,0,0,.4) 0,rgba(0,0,0,0) 30%)}
+  .call2.gold::before{background:linear-gradient(90deg,rgba(0,0,0,.66) 0,rgba(0,0,0,.52) 55%,rgba(0,0,0,.38) 100%),linear-gradient(180deg,rgba(0,0,0,.3) 0,rgba(0,0,0,0) 30%)}
 }
 
 
