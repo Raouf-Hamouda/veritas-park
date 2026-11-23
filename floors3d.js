@@ -122,7 +122,9 @@
     const [r, u] = axes(cur.az, cur.el); half = cur.hw / zoom; cam.left = -half; cam.right = half; cam.top = half * H / W; cam.bottom = -cam.top; cam.updateProjectionMatrix();
     const tx = cur.tx + pr * r[0] + pu * u[0], ty = cur.ty + pu * u[1], tz = cur.tz + pr * r[2] + pu * u[2];
     cam.position.set(tx + Math.sin(cur.az) * Math.cos(cur.el) * 3000, ty + Math.sin(cur.el) * 3000, tz + Math.cos(cur.az) * Math.cos(cur.el) * 3000); cam.lookAt(tx, ty, tz); cam.updateMatrixWorld(); renderer.render(scene, cam);
-    layers.forEach((L, n) => { V.set(L.slide - L.w / 2, L.y, L.d / 2).project(cam); tags[n].style.transform = `translate(${((V.x + 1) / 2 * W).toFixed(1)}px,${((1 - V.y) / 2 * H).toFixed(1)}px) translate(-150%,-50%)`; tags[n].style.opacity = open < 0 ? L.op : 0 });
+    // the floor numbers stand in a column left of the whole stack, each at the height of its sheet's front corner: never on a sheet
+    let left = Infinity; layers.forEach(L => { for (const [x, z] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) { V.set(L.slide * 0 + x * L.w / 2, L.y, z * L.d / 2).project(cam); left = Math.min(left, (V.x + 1) / 2 * W) } });
+    layers.forEach((L, n) => { V.set(-L.w / 2, L.y, L.d / 2).project(cam); tags[n].style.transform = `translate(${(left - 14).toFixed(1)}px,${((1 - V.y) / 2 * H).toFixed(1)}px) translate(-100%,-50%)`; tags[n].style.opacity = open < 0 ? L.op : 0 });
   }
   new ResizeObserver(size).observe(view); size(); mark(-1);
   new IntersectionObserver(es => { const was = visible; visible = es[0].isIntersecting; if (visible && !was) { dirty = true; requestAnimationFrame(frame) } }).observe(view);

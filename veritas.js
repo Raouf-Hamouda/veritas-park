@@ -104,7 +104,7 @@
 
   // a long sentence is set smaller than a short one, in both languages
   // a word written with a hyphen (co-create) is never cut at its hyphen
-  const joined = () => { const w = D.createTreeWalker($('main'), NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) if (/\w-\w/.test(n.nodeValue) && n.parentElement.closest('h1,h2,h3,blockquote,.t-serif,.t-line')) n.nodeValue = n.nodeValue.replace(/(\w)-(?=\w)/g, '$1-\u2060') };
+  const joined = () => { const w = D.createTreeWalker($('main'), NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) if (/\w-\w/.test(n.nodeValue) && n.parentElement.closest('h1,h2,h3,blockquote,.t-serif,.t-line,button,li,.nl-c')) n.nodeValue = n.nodeValue.replace(/(\w)-(?=\w)/g, '$1-\u2060') };
   const fit = () => { joined(); $$('.t-serif,.t-line,.t-caps,.quote').forEach(e => { const n = e.textContent.trim().length; e.classList.toggle('long', n > 70 && n <= 150); e.classList.toggle('xlong', n > 150) }) };
   fit(); snap(); addEventListener('veritas-lang', () => { fit(); snap(); scroll() });
 
