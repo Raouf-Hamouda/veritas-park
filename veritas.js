@@ -31,14 +31,21 @@
   const tint = $('meta[name=theme-color]') || D.head.appendChild(Object.assign(D.createElement('meta'), { name: 'theme-color' }));   // the colour a phone gives to its own bars
   // the header takes the ink of the ground under it; a few things follow the scroll
   const head = $('.head'), arc = $('.arc'), bleeds = $$('.bleed');
-  let tick = 0; const scroll = () => { if (tick) return; tick = requestAnimationFrame(() => { tick = 0;
-    root.classList.toggle('at-top', scrollY < innerHeight * .6); root.classList.toggle('scrolled', scrollY > 30); root.classList.toggle('at-end', scrollY + innerHeight > root.scrollHeight - innerHeight * .6);
+  // The bar has two states: A, bare and large over the opening picture (the top of a page); B, small on its strip (after a scroll).
+  // His words (23 Nov): "state A leads to state A, state B leads to state B". So the state is carried to the next page: a page left in B opens in B, although it opens at its top,
+  // and the bar does not jump during the change. Only the scroll changes the state: once the visitor has gone past the first lines, the usual rule is back (A at the very top, B below).
+  // (The page itself puts the class on before its first picture: the small script in its head.)
+  let held = false; try { held = sessionStorage.getItem('v-bar') === 'b'; sessionStorage.removeItem('v-bar') } catch (e) {}
+  addEventListener('pagehide', () => { try { sessionStorage.setItem('v-bar', root.classList.contains('scrolled') ? 'b' : 'a') } catch (e) {} });
+  let tick = 0; const scroll = () => { if (tick) return; tick = requestAnimationFrame(() => { tick = 0; place() }) }, place = () => {
+    if (held && scrollY > 30) held = false;
+    root.classList.toggle('at-top', scrollY < innerHeight * .6); root.classList.toggle('scrolled', held || scrollY > 30); root.classList.toggle('at-end', scrollY + innerHeight > root.scrollHeight - innerHeight * .6);
     const g = D.elementsFromPoint(innerWidth / 2, head.offsetHeight / 2).find(e => e.dataset && e.dataset.ground); head.classList.toggle('on-dark', !!g && g.dataset.ground === 'dark'); const darkTop = head.classList.contains('on-dark') || root.classList.contains('at-top'); root.classList.toggle('dark-top', darkTop); tint.content = darkTop ? '#000000' : '#ffffff';
     if (arc && !calm) { const r = arc.getBoundingClientRect(), p = (innerHeight - r.top) / (innerHeight + r.height); if (p > -.2 && p < 1.2) arc.style.setProperty('--turn', ((.5 - p) * 26).toFixed(2) + 'deg') }
     if (!calm) for (const b of bleeds) { const r = b.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) b.style.setProperty('--par', ((innerHeight - r.top) / (innerHeight + r.height)).toFixed(3)) }
-    if (body.classList.contains('grid')) body.style.setProperty('--gy', -(scrollY % row) + 'px') }) };
+    if (body.classList.contains('grid')) body.style.setProperty('--gy', -(scrollY % row) + 'px') };
   addEventListener('scroll', scroll, { passive: true }); let wide = innerWidth; addEventListener('resize', () => { if (innerWidth !== wide) { wide = innerWidth; snap() } scroll() });   // the rows change only when the width does (a phone resizes at every slide of its browser bar)
-  snap(); scroll(); (D.fonts ? D.fonts.ready : Promise.resolve()).then(() => { snap(); scroll() }); addEventListener('load', () => { snap(); scroll() });
+  snap(); place(); (D.fonts ? D.fonts.ready : Promise.resolve()).then(() => { snap(); scroll() }); addEventListener('load', () => { snap(); scroll() });
 
   // things arrive once; icons draw themselves line after line
   $$('.draw').forEach(svg => $$('path', svg).forEach((p, i) => { p.setAttribute('pathLength', 1); p.style.setProperty('--i', i) }));
@@ -110,7 +117,7 @@
   if (window.ResizeObserver) { const ro = new ResizeObserver(() => { clearTimeout(late); late = setTimeout(() => { snap(); scroll() }, 120) }); blocks.forEach(b => ro.observe(b)) }
   D.addEventListener('load', e => { if (e.target.tagName === 'IMG' && !e.target.closest('.fl-ui,.lb,.hero,.wheel,.col-pic,.top2,.call2,.bleed')) { clearTimeout(late); late = setTimeout(() => { snap(); scroll() }, 120) } }, true);
 
-  addEventListener('pageshow', scroll); D.addEventListener('visibilitychange', scroll);   // the ink of the menu bar is set again whenever the page is shown
+  addEventListener('pageshow', e => { if (e.persisted) held = false; scroll() }); D.addEventListener('visibilitychange', scroll);   // the ink of the menu bar is set again whenever the page is shown
   // the next page is fetched as soon as the pointer comes near its link, so that it is there at once; and its first picture is fetched ahead
   if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) { const sp = D.createElement('script'); sp.type = 'speculationrules'; sp.textContent = JSON.stringify({ prefetch: [{ where: { selector_matches: '.bar a, .nav a.sign, a.sbtn[href$=".html"]' }, eagerness: 'moderate' }] }); D.head.append(sp) }
   const small = innerWidth * (devicePixelRatio || 1) <= 1300, slow = navigator.connection && (navigator.connection.saveData || /2g/.test(navigator.connection.effectiveType || ''));   // a phone takes the phone-size copies (img/place/m); a visitor who saves data takes none in advance

@@ -860,8 +860,7 @@ body.v{--lift:0px}
 .scrolled:not(.nav-open) .menu-btn{font-size:16px}
 html.nav-open{overflow:hidden}.nav{overscroll-behavior:contain}
 
-/* the opening: the dial at the bottom right is gone, the name of the picture stands alone */
-.hero .place{display:block}
+/* the opening: the symbol stands again beside the name of the picture (taken out in round 14, asked back in round 18) */
 
 /* the foot of the page: the light fills the whole footer, no black band; near the foot the colour behind the page is the colour of the foot, so the bar of a phone's browser carries it on */
 .dark.end{background:#000 radial-gradient(150% 150% at 36% 112%,var(--h-dark) 0,color-mix(in srgb,var(--h-dark) 86%,#000) 18%,color-mix(in srgb,var(--h-dark) 70%,#000) 36%,color-mix(in srgb,var(--h-dark) 54%,#000) 54%,color-mix(in srgb,var(--h-dark) 40%,#000) 72%,color-mix(in srgb,var(--h-dark) 28%,#000) 88%,color-mix(in srgb,var(--h-dark) 20%,#000) 100%) no-repeat}
@@ -968,3 +967,13 @@ html.at-end{background:transparent!important}html.at-end body.v{background:color
 .scrolled .head::before{background:rgba(255,255,255,.97)}.scrolled .head.on-dark::before{background:rgba(0,0,0,.86)}
 .scrolled.at-end .head.on-dark::before{background:color-mix(in srgb,var(--h-dark) 24%,#000)}
 .nav-open .head::before{opacity:0}
+
+/* ================= ROUND 18 (23 Nov, 14:15) ================= */
+/* the menu bar keeps its state from one page to the next (veritas.js): a page reached with the small bar shows it small on its strip at once, before any script has run.
+   Every page opens on a dark picture, so that strip is the dark one */
+.at-top.scrolled .head::before{background:rgba(0,0,0,.86);border-color:transparent;box-shadow:none}
+.at-top.scrolled.nav-open .head::before{opacity:0}
+/* the symbol of the opening: no browser box on a tick that was clicked; a tick reached with the keyboard shows as a soft wedge */
+.dial .hit{outline:none;-webkit-tap-highlight-color:transparent}.dial .hit:focus-visible{fill:rgba(255,255,255,.16)}
+/* over a pale part of a picture the ticks stay readable: a little more ink, and a soft shade behind them (as under the words) */
+.dial svg{filter:drop-shadow(0 0 9px rgba(0,0,0,.5))}.dial .tk{opacity:.5}.dial .tk.past{opacity:.74}.dial .tk.now{opacity:1}
