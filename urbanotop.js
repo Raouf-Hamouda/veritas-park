@@ -344,6 +344,7 @@
     new IntersectionObserver(es => { const was = visible; visible = es[0].isIntersecting; if (!visible && free) setFree(false); if (visible && !was) { dirty = true; lastT = performance.now(); requestAnimationFrame(frame) } }, { rootMargin: '0px 0px -10% 0px' }).observe(stage);
     // the detail modules: railway and train, roof walls and gates, kerbs and lamps, people, cars and boats
     Object.assign(api, { T, scene, MAP, R, UP, HUE, zones, zoneAt, info, town, mix, mat, pairs, inside, area, centroid, greens, waters, wood, flat, lay, shapeOf, b13, roof13: floors[floors.length - 1], lite, mark: () => { dirty = shadowDirty = true } });
+    api.redraw = () => { dirty = true; shadowDirty = true };   // a module that finishes late (the trees, read from a file) asks for a new picture
     for (const f of window.VERITAS_DETAIL || []) { try { f(api) } catch (e) { console.error(e) } }
     shadowDirty = true; if (soft) lighten(2); stage.urbanotop = { choose, flyTo, view, daylight, api, quality: () => grade, lighten };   // for the checks
   }
