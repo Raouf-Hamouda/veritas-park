@@ -8,7 +8,7 @@
     'See the spaces': 'Räume ansehen', 'Get in touch': 'Kontakt aufnehmen', 'Meet VERITAS': 'VERITAS kennenlernen', 'About us': 'Über uns', 'Menu': 'Menü', 'Close': 'Schließen',
     'At VERITAS, we host, house, and hone creative thinkers': 'Bei VERITAS empfangen, beherbergen und fördern wir kreative Köpfe',
     'Space for big ideas': 'Raum für große Ideen', 'Hotel': 'Hotel', 'Lobby Bar': 'Lobby-Bar', 'Offices and Co-working': 'Büros und Coworking', 'Office Hotel': 'Bürohotel', 'Work Spaces': 'Arbeitsräume',
-    'Conference Hall': 'Konferenzsaal', 'Events and Club': 'Events und Club', 'Sport': 'Sport', 'Light Industry': 'Leichtindustrie', 'By the River': 'Am Fluss', 'The Clock Tower': 'Der Uhrenturm',
+    'Conference Hall': 'Konferenzsaal', 'Events and Club': 'Events und Club', 'Sport': 'Sport', 'Light Industry': 'Leichtindustrie', 'By the River': 'Am Fluss', 'The Clock Tower': 'Der Uhrenturm', 'The Factory': 'Die Fabrik',
     'Building 13': 'Gebäude 13', 'Building 7': 'Gebäude 7', 'Building 2': 'Gebäude 2', 'Building 110': 'Gebäude 110', 'Building 13, ground floor': 'Gebäude 13, Erdgeschoss', 'Building 13, first floor': 'Gebäude 13, erstes Obergeschoss',
     'Building 13, second floor': 'Gebäude 13, zweites Obergeschoss', 'Building 14, for conferences and performances': 'Gebäude 14, für Konferenzen und Aufführungen', 'Building 4, with a restaurant on the water': 'Gebäude 4, mit einem Restaurant am Wasser',
     '16 hectares of green': '16 Hektar Grün', 'Returns': 'Rendite', 'Commercial': 'Gewerbe', 'Office': 'Büro', 'Shaping the future together.': 'Gemeinsam die Zukunft gestalten.', 'Forever': 'Immer', 'evolving': 'im Wandel' };

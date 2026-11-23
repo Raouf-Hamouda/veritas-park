@@ -18,6 +18,7 @@
   const btn = $('.menu-btn'), nav = $('.nav');
   const menu = on => { root.classList.toggle('nav-open', on); btn.setAttribute('aria-expanded', on); btn.textContent = on ? 'Close' : 'Menu'; nav.toggleAttribute('inert', !on) };
   btn && btn.addEventListener('click', () => menu(!root.classList.contains('nav-open')));
+  nav && nav.addEventListener('touchmove', e => { if (nav.scrollHeight <= nav.clientHeight + 1) e.preventDefault() }, { passive: false });   // the page behind an open menu does not scroll
   addEventListener('keydown', e => { if (e.key === 'Escape') menu(false); if ((e.key === 'g' || e.key === 'G') && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) { body.classList.toggle('grid'); scroll() } });
 
   // square rows (p36): every block ends on a row of the grid
@@ -31,7 +32,7 @@
   // the header takes the ink of the ground under it; a few things follow the scroll
   const head = $('.head'), arc = $('.arc'), bleeds = $$('.bleed');
   let tick = 0; const scroll = () => { if (tick) return; tick = requestAnimationFrame(() => { tick = 0;
-    root.classList.toggle('at-top', scrollY < innerHeight * .6); root.classList.toggle('scrolled', scrollY > 30);
+    root.classList.toggle('at-top', scrollY < innerHeight * .6); root.classList.toggle('scrolled', scrollY > 30); root.classList.toggle('at-end', scrollY + innerHeight > root.scrollHeight - innerHeight * .6);
     const g = D.elementsFromPoint(innerWidth / 2, head.offsetHeight / 2).find(e => e.dataset && e.dataset.ground); head.classList.toggle('on-dark', !!g && g.dataset.ground === 'dark'); const darkTop = head.classList.contains('on-dark') || root.classList.contains('at-top'); root.classList.toggle('dark-top', darkTop); tint.content = darkTop ? '#000000' : '#ffffff';
     if (arc && !calm) { const r = arc.getBoundingClientRect(), p = (innerHeight - r.top) / (innerHeight + r.height); if (p > -.2 && p < 1.2) arc.style.setProperty('--turn', ((.5 - p) * 26).toFixed(2) + 'deg') }
     if (!calm) for (const b of bleeds) { const r = b.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) b.style.setProperty('--par', ((innerHeight - r.top) / (innerHeight + r.height)).toFixed(3)) }
@@ -44,7 +45,7 @@
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) } }), { rootMargin: '0px 0px -8% 0px', threshold: .08 });
   $$('.reveal,.draw').forEach(e => io.observe(e));
   // on a phone nothing hovers: the field in the middle of the screen lights up
-  if (matchMedia('(hover:none)').matches) { const mid = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('lit-on', e.isIntersecting)), { rootMargin: '-42% 0px -42% 0px' }); $$('.fld').forEach(f => mid.observe(f)) }
+  if (matchMedia('(hover:none)').matches) { const mid = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('lit-on', e.isIntersecting)), { rootMargin: '-50% 0px -50% 0px' }); $$('.fld').forEach(f => mid.observe(f)) }
 
   // the building, floor by floor
   $$('.floors').forEach(list => { if (list.closest('.stack')) return;   // the stacked plans have their own script (floors.js)
