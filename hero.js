@@ -6,7 +6,7 @@
 (() => {
   const hero = document.querySelector('.hero'); if (!hero) return;
   const figs = [...hero.querySelectorAll('.hero-pics figure')], n = figs.length, place = hero.querySelector('.place'), name = place.querySelector('.txt b u'), line = place.querySelector('.txt span u');
-  const calm = matchMedia('(prefers-reduced-motion:reduce)').matches, HOLD = 6500;
+  const calm = matchMedia('(prefers-reduced-motion:reduce)').matches, HOLD = calm ? 7000 : 5000;   // with Reduce Motion on (often on an iPhone) the pictures still change, as a plain fade
   let cur = 0, timer = 0, ask = 0, inView = true;
   // the symbol of the brand stands beside the name: twelve ticks, one per picture. At each new picture its tick comes out of the tick before it, turns one hour and grows to its length;
   // back at the first picture the whole symbol is built again. A tick chooses its picture. (Needs symbol.js; without it the opening runs the same, with no symbol.)
@@ -22,7 +22,7 @@
   }
   const loaded = img => { if (img.dataset.src) { if (img.dataset.srcset) img.srcset = img.dataset.srcset; img.src = img.dataset.src; delete img.dataset.src }   // a picture is only asked for when its turn comes
     if (img.complete && img.naturalWidth) return Promise.resolve(); return Promise.race([img.decode().catch(() => {}), new Promise(r => setTimeout(r, 4000))]) };
-  const arm = () => { clearTimeout(timer); if (!calm) timer = setTimeout(() => inView && !document.hidden ? go(cur + 1) : arm(), HOLD) };
+  const arm = () => { clearTimeout(timer); timer = setTimeout(() => inView && !document.hidden ? go(cur + 1) : arm(), HOLD) };
   function go(i) {
     i = (i % n + n) % n; if (i === cur) return; const mine = ++ask; clearTimeout(timer);
     loaded(figs[i].querySelector('img')).then(() => { if (mine !== ask) return; figs[cur].classList.remove('on'); figs[i].classList.add('on'); cur = i; label(i); mark(i); if (sym) i === 0 ? sym.build(.045, .3, 0) : sym.step(i); arm(); loaded(figs[(i + 1) % n].querySelector('img')) });
