@@ -929,4 +929,6 @@ html.at-end{background:transparent!important}html.at-end body.v{background:color
   html.nav-open{background:transparent!important}html.nav-open body.v{background:color-mix(in srgb,var(--h-dark) 92%,#000)!important}
   /* at the foot of the page the strip of the header takes the ground of the foot: no black band above it */
   .scrolled.at-end .head.on-dark::before{background:color-mix(in srgb,var(--h-dark) 24%,#000)}
+  /* "Every step forward": on a phone the sentence crosses the whole picture, so the veil is deep across the whole width, not only on the left */
+  .call2.gold::before{background:linear-gradient(90deg,rgba(0,0,0,.84) 0,rgba(0,0,0,.72) 55%,rgba(0,0,0,.56) 100%),linear-gradient(180deg,rgba(0,0,0,.4) 0,rgba(0,0,0,0) 30%)}
 }
