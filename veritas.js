@@ -66,7 +66,7 @@
 
   // a picture opens to the full screen from where it stands, and goes back to its place (the wheel and the gallery use it)
   window.veritasOpen = (img, title = '', line = '') => {
-    const r = img.getBoundingClientRect(), nw = img.naturalWidth || r.width, nh = img.naturalHeight || r.height, m = innerWidth < 820 ? 14 : 56;
+    const frame = img.closest('.card') || img.parentElement, r = frame.getBoundingClientRect(), nw = img.naturalWidth || r.width, nh = img.naturalHeight || r.height, m = innerWidth < 820 ? 14 : 56;
     const k = Math.min((innerWidth - 2 * m) / nw, (innerHeight - 2 * m) / nh), tw = nw * k, th = nh * k, tx = (innerWidth - tw) / 2, ty = (innerHeight - th) / 2;
     // where the picture stands now, said in the terms of the big picture: a scale, a place, and the part of it that shows
     const s0 = Math.max(r.width / tw, r.height / th), ox = r.left + r.width / 2 - tw * s0 / 2, oy = r.top + r.height / 2 - th * s0 / 2, ix = (tw * s0 - r.width) / 2 / s0, iy = (th * s0 - r.height) / 2 / s0;
@@ -77,8 +77,15 @@
     box.querySelector('b').textContent = title; box.querySelector('span').textContent = line; body.append(box); body.classList.add('lb-open'); img.style.visibility = 'hidden';
     const spring = 'transform .7s cubic-bezier(.19,1,.22,1),clip-path .7s cubic-bezier(.19,1,.22,1)';
     requestAnimationFrame(() => requestAnimationFrame(() => { big.style.transition = calm ? 'none' : spring; Object.assign(big.style, to); box.classList.add('on') }));
-    let shut = false; const close = () => { if (shut) return; shut = true; removeEventListener('keydown', key); box.classList.remove('on'); body.classList.remove('lb-open'); Object.assign(big.style, from); setTimeout(() => { img.style.visibility = ''; box.remove() }, calm ? 0 : 700) };
-    const key = e => { if (e.key === 'Escape') close() }; addEventListener('keydown', key); box.addEventListener('click', close); addEventListener('scroll', close, { once: true, passive: true });
+    // closing: the picture goes back to where its place is NOW (the page or the wheel may have moved), quicker than it came, and its place shows again the moment it lands
+    const back = () => { const q = frame.getBoundingClientRect(), z = Math.max(q.width / tw, q.height / th);
+      return { transform: `translate(${q.left + q.width / 2 - tw * z / 2}px,${q.top + q.height / 2 - th * z / 2}px) scale(${z})`, clipPath: `inset(${(th * z - q.height) / 2 / z}px ${(tw * z - q.width) / 2 / z}px)` } };
+    let shut = false; const close = () => { if (shut) return; shut = true; removeEventListener('keydown', key); removeEventListener('scroll', moved); box.classList.remove('on'); body.classList.remove('lb-open');
+      const end = () => { img.style.visibility = ''; box.remove() }; if (calm) return end();
+      big.style.transition = 'transform .48s cubic-bezier(.3,.7,.2,1),clip-path .48s cubic-bezier(.3,.7,.2,1)'; Object.assign(big.style, back());
+      let done = false; const fin = () => { if (done) return; done = true; end() }; big.addEventListener('transitionend', fin, { once: true }); setTimeout(fin, 560) };
+    const y0 = scrollY, moved = () => { if (Math.abs(scrollY - y0) > 60) close() };   // a real scroll closes it, not the last drift of a trackpad
+    const key = e => { if (e.key === 'Escape') close() }; addEventListener('keydown', key); box.addEventListener('click', close); addEventListener('scroll', moved, { passive: true });
   };
   $$('.mosaic button').forEach(b => b.addEventListener('click', () => window.veritasOpen(b.querySelector('img'))));
 
