@@ -145,9 +145,10 @@
   const key = e => { if (e.key === 'Escape') close() };
   el.querySelector('.nl-x').addEventListener('click', close); el.addEventListener('click', e => { if (e.target === el) close() });
   el.querySelector('form').addEventListener('submit', () => { done(); setTimeout(close, 300) });
-  if (seen) return;
+  const ask = /[?&]newsletter\b/.test(location.search);   // ?newsletter shows the card at once (to look at it)
+  if (seen && !ask) return;
   let shown = false; const show = () => { if (shown) return; const b = D.body; if (b.classList.contains('lb-open') || D.documentElement.classList.contains('nav-open') || D.querySelector('.lb')) { setTimeout(show, 4000); return }
     shown = true; removeEventListener('scroll', half); el.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on'))); D.addEventListener('keydown', key) };
   const half = () => { if (scrollY > (D.documentElement.scrollHeight - innerHeight) * .5) show() };
-  addEventListener('scroll', half, { passive: true }); setTimeout(show, 25000);
+  addEventListener('scroll', half, { passive: true }); setTimeout(show, ask ? 600 : 25000);
 })();
