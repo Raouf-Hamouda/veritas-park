@@ -124,3 +124,30 @@
   const small = innerWidth * (devicePixelRatio || 1) <= 1300, slow = navigator.connection && (navigator.connection.saveData || /2g/.test(navigator.connection.effectiveType || ''));   // a phone takes the phone-size copies (img/place/m); a visitor who saves data takes none in advance
   if (!slow) addEventListener('load', () => setTimeout(() => ['b7_140', 'aerial_0', 'b4roof_038', 'b13_132', 'epp_9195'].forEach(n => { new Image().src = `img/place/${small ? 'm/' : ''}${n}.jpg` }), 2500));
 })();
+
+/* the newsletter card: comes up once per visitor, after a while on the site or once half a page is read; closed by the cross, Escape or a click beside it */
+(() => {
+  const D = document; let seen = null; try { seen = localStorage.getItem('v-news') } catch (e) {}
+  const box = (v, sub) => `<label class="nl-c${sub ? ' sub' : ''}"><input type="checkbox" name="Interests" value="${v}" checked><i aria-hidden="true"></i><span>${v}</span></label>`;
+  const el = D.createElement('div'); el.className = 'nl'; el.hidden = true;
+  el.innerHTML = `<form class="nl-card" action="mailto:info@veritas-park.eu?subject=Newsletter" method="post" enctype="text/plain" role="dialog" aria-modal="true" aria-labelledby="nl-t">
+    <button type="button" class="nl-x" aria-label="Close"><svg class="ico" viewBox="0 0 100 100"><path d="M12.5 12.5L87.5 87.5"/><path d="M87.5 12.5L12.5 87.5"/></svg></button>
+    <div class="nl-head"><b id="nl-t">Be the first to know</b><span>Subscribe to receive our newsletter on the place, its spaces, events and more</span></div>
+    <fieldset class="nl-pick"><legend>I am interested in</legend>${box('News from VERITAS')}${box('Events and Club')}${box('Spaces to rent')}${['Offices and Co-working', 'Work Spaces', 'Conference Hall', 'Light Industry'].map(v => box(v, 1)).join('')}${box('Invest')}</fieldset>
+    <div class="nl-send"><label class="nl-mail"><span class="v-sr">E-Mail</span><input type="email" name="E-Mail" placeholder="E-Mail *" required autocomplete="email"></label>
+      <button class="nl-go" type="submit">Sign up</button>
+      <p>You can withdraw your consent at any time with the unsubscribe link in each newsletter</p><a href="https://veritas-park.eu/datenschutz" target="_blank" rel="noopener">Privacy Policy</a></div></form>`;
+  D.body.append(el);
+  const all = [...el.querySelectorAll('input[type=checkbox]')], parent = all[2], kids = all.slice(3, 7);
+  parent.addEventListener('change', () => kids.forEach(k => k.checked = parent.checked)); kids.forEach(k => k.addEventListener('change', () => parent.checked = kids.some(x => x.checked)));
+  const done = () => { try { localStorage.setItem('v-news', '1') } catch (e) {} };
+  const close = () => { el.classList.remove('on'); D.removeEventListener('keydown', key); done(); setTimeout(() => el.hidden = true, 500) };
+  const key = e => { if (e.key === 'Escape') close() };
+  el.querySelector('.nl-x').addEventListener('click', close); el.addEventListener('click', e => { if (e.target === el) close() });
+  el.querySelector('form').addEventListener('submit', () => { done(); setTimeout(close, 300) });
+  if (seen) return;
+  let shown = false; const show = () => { if (shown) return; const b = D.body; if (b.classList.contains('lb-open') || D.documentElement.classList.contains('nav-open') || D.querySelector('.lb')) { setTimeout(show, 4000); return }
+    shown = true; removeEventListener('scroll', half); el.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on'))); D.addEventListener('keydown', key) };
+  const half = () => { if (scrollY > (D.documentElement.scrollHeight - innerHeight) * .5) show() };
+  addEventListener('scroll', half, { passive: true }); setTimeout(show, 25000);
+})();
