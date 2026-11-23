@@ -850,3 +850,5 @@ body.v{--lift:0px}
 .gate .tile{all:unset;display:grid;place-items:center;width:clamp(92px,9.5vw,148px);aspect-ratio:1;color:#fff}
 .gate .tile::before,.gate .tile::after{content:none}
 .gate .tile svg{width:100%;height:auto;overflow:visible}.gate .tile svg rect{fill:#fff}
+/* the arrival has no box at all: the square element itself is gone from the pages. Only the black ground and the symbol. */
+.gate>svg{display:block;width:clamp(92px,9.5vw,148px);height:auto;overflow:visible}.gate>svg rect{fill:#fff}
